@@ -550,11 +550,9 @@ class _HomeScreenState extends State<HomeScreen> {
                   color: Colors.orange,
                   title: SettingsManager.translate('clear_cache'),
                   onTap: () {
-                    /*
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(content: Text(SettingsManager.translate('cache_cleared'))),
                     );
-                    */
                   },
                 ),
                 const Divider(height: 1, indent: 56),
