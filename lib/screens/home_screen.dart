@@ -522,14 +522,12 @@ class _HomeScreenState extends State<HomeScreen> {
                   color: Colors.blue,
                   title: SettingsManager.translate('language_setting'),
                   onTap: () {
-                    /*
                     Navigator.push(
                       context,
                       MaterialPageRoute(
                         builder: (context) => const SettingDetailsScreen(settingType: 'Ngôn ngữ'),
                       ),
                     );
-                    */
                   },
                 ),
                 const Divider(height: 1, indent: 56),
