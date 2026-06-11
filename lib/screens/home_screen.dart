@@ -536,14 +536,12 @@ class _HomeScreenState extends State<HomeScreen> {
                   color: Colors.purple,
                   title: SettingsManager.translate('theme_setting'),
                   onTap: () {
-                    /*
                     Navigator.push(
                       context,
                       MaterialPageRoute(
                         builder: (context) => const SettingDetailsScreen(settingType: 'Theme'),
                       ),
                     );
-                    */
                   },
                 ),
                 const Divider(height: 1, indent: 56),
