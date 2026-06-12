@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../mock_data.dart';
 import 'congrats_screen.dart';
 import '../utils/settings_manager.dart';
+import '../utils/database_helper.dart';
 
 class FoldingStepsScreen extends StatefulWidget {
   final OrigamiModel model;
@@ -24,29 +25,40 @@ class _FoldingStepsScreenState extends State<FoldingStepsScreen> {
     }
   }
 
-  void _saveAndExit() {
-    // Lưu lại tiến độ gấp dở (bước hiện tại) vào mock data
+  void _saveAndExit() async {
+    final user = await DatabaseHelper.instance.getCurrentUser();
+    if (user != null) {
+      final userId = user['id'] as int;
+      await DatabaseHelper.instance.updateProgress(userId, widget.model.id, _currentStepIndex + 1, 0);
+    }
     widget.model.currentStep = _currentStepIndex + 1;
     widget.model.isCompleted = false;
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(SettingsManager.translate('save_success')), duration: const Duration(seconds: 1)),
-    );
-    Navigator.pop(context);
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(SettingsManager.translate('save_success')), duration: const Duration(seconds: 1)),
+      );
+      Navigator.pop(context);
+    }
   }
 
-  void _completeFolding() {
-    // Lưu trạng thái hoàn thành vào mock data
+  void _completeFolding() async {
+    final user = await DatabaseHelper.instance.getCurrentUser();
+    if (user != null) {
+      final userId = user['id'] as int;
+      await DatabaseHelper.instance.updateProgress(userId, widget.model.id, widget.model.stepsCount, 1);
+    }
     widget.model.currentStep = widget.model.stepsCount;
     widget.model.isCompleted = true;
 
-    // Chuyển sang màn hình Chúc mừng (Congrats Screen)
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(
-        builder: (context) => CongratsScreen(model: widget.model),
-      ),
-    );
+    if (mounted) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => CongratsScreen(model: widget.model),
+        ),
+      );
+    }
   }
 
   @override

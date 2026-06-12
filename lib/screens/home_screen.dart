@@ -5,6 +5,7 @@ import 'folding_steps_screen.dart';
 import 'setting_details_screen.dart';
 import 'profile_screen.dart';
 import '../utils/settings_manager.dart';
+import '../utils/database_helper.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -18,9 +19,36 @@ class _HomeScreenState extends State<HomeScreen> {
   String _selectedCategory = 'Tất cả';
   String _selectedDifficulty = 'Tất cả';
 
-  // Thống kê số lượng hoàn thành dựa trên MockData
+  Map<String, dynamic>? _currentUser;
+  List<OrigamiModel> _allModels = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
+
+  Future<void> _loadData() async {
+    final db = DatabaseHelper.instance;
+    final user = await db.getCurrentUser();
+    if (user != null) {
+      final userId = user['id'] as int;
+      final models = await db.getOrigamiModelsForUser(userId);
+      setState(() {
+        _currentUser = user;
+        _allModels = models;
+        _isLoading = false;
+      });
+    } else {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
   int get _completedCount {
-    return MockData.models.where((m) => m.isCompleted).length;
+    return _allModels.where((m) => m.isCompleted).length;
   }
 
   @override
@@ -28,7 +56,9 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
-        child: _buildCurrentTab(),
+        child: _isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : _buildCurrentTab(),
       ),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
@@ -70,7 +100,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   // ================= TAB 0: TRANG CHỦ =================
   Widget _buildHomeTab() {
-    final inProgressModels = MockData.models.where((m) => m.currentStep > 0 && !m.isCompleted).toList();
+    final inProgressModels = _allModels.where((m) => m.currentStep > 0 && !m.isCompleted).toList();
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20.0),
@@ -90,7 +120,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'Nguyễn Văn A',
+                    _currentUser != null ? _currentUser!['name'] : 'Khách',
                     style: TextStyle(
                       fontSize: 22,
                       fontWeight: FontWeight.bold,
@@ -107,7 +137,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     context,
                     MaterialPageRoute(builder: (context) => const ProfileScreen()),
                   );
-                  setState(() {}); // Làm mới stats (số mẫu đã hoàn thành) khi quay lại
+                  _loadData(); // Làm mới stats khi quay lại
                 },
                 child: Container(
                   padding: const EdgeInsets.all(2),
@@ -178,10 +208,16 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
                 Container(
-                  height: 60,
-                  width: 60,
-                  decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), shape: BoxShape.circle),
-                  child: const Icon(Icons.emoji_events, color: Colors.white, size: 36),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.2),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.emoji_events,
+                    color: Colors.amber,
+                    size: 32,
+                  ),
                 )
               ],
             ),
@@ -254,9 +290,9 @@ class _HomeScreenState extends State<HomeScreen> {
               mainAxisSpacing: 16,
               childAspectRatio: 0.78,
             ),
-            itemCount: MockData.models.take(2).length,
+            itemCount: _allModels.take(2).length,
             itemBuilder: (context, index) {
-              return _buildOrigamiCard(MockData.models[index]);
+              return _buildOrigamiCard(_allModels[index]);
             },
           ),
         ],
@@ -267,7 +303,7 @@ class _HomeScreenState extends State<HomeScreen> {
   // ================= TAB 1: KHÁM PHÁ (DANH SÁCH ORIGAMI) =================
   Widget _buildExploreTab() {
     // Lọc theo bộ lọc danh mục và độ khó
-    final filteredModels = MockData.models.where((m) {
+    final filteredModels = _allModels.where((m) {
       final matchCategory = _selectedCategory == 'Tất cả' || m.category == _selectedCategory;
       final matchDifficulty = _selectedDifficulty == 'Tất cả' ||
           (_selectedDifficulty == 'Dễ' && m.difficulty <= 2) ||
@@ -376,7 +412,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   // ================= TAB 2: YÊU THÍCH =================
   Widget _buildFavoritesTab() {
-    final favoriteModels = MockData.models.where((m) => m.isFavorite).toList();
+    final favoriteModels = _allModels.where((m) => m.isFavorite).toList();
 
     return Padding(
       padding: const EdgeInsets.all(20.0),
@@ -435,7 +471,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   // ================= TAB 3: TIẾN ĐỘ =================
   Widget _buildProgressTab() {
-    final progressModels = MockData.models.where((m) => m.currentStep > 0 && !m.isCompleted).toList();
+    final progressModels = _allModels.where((m) => m.currentStep > 0 && !m.isCompleted).toList();
 
     return Padding(
       padding: const EdgeInsets.all(20.0),
@@ -609,7 +645,7 @@ class _HomeScreenState extends State<HomeScreen> {
             builder: (context) => OrigamiDetailScreen(model: model),
           ),
         );
-        setState(() {}); // Làm mới giao diện khi trở lại
+        _loadData(); // Làm mới giao diện khi trở lại
       },
       child: Container(
         decoration: BoxDecoration(
@@ -781,7 +817,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   builder: (context) => FoldingStepsScreen(model: model),
                 ),
               );
-              setState(() {});
+              _loadData();
             },
             child: Text(
               SettingsManager.translate('continue_btn'),
