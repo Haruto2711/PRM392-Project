@@ -17,6 +17,17 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _rememberMe = false;
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final currentUser = await DatabaseHelper.instance.getCurrentUser();
+      if (currentUser != null) {
+        Navigator.pushReplacementNamed(context, '/home');
+      }
+    });
+  }
+
+  @override
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
@@ -171,7 +182,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   ],
                 ),
                 const SizedBox(height: 24),
-                 CustomButton(
+                  CustomButton(
                   text: 'Đăng nhập',
                   onPressed: () async {
                     if (_formKey.currentState!.validate()) {
@@ -184,17 +195,18 @@ class _LoginScreenState extends State<LoginScreen> {
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(content: Text('Email/Tên đăng nhập hoặc mật khẩu không chính xác!')),
                           );
-                          return; // Dừng lại nếu sai thông tin trong DB
+                          return;
                         }
-                      } catch (e) {
-                        // Fallback nếu chạy trên Web hoặc môi trường chưa cài SQLite
-                        debugPrint('Đăng nhập SQLite lỗi (dùng chế độ giả lập): $e');
-                      }
 
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Đăng nhập thành công!')),
-                      );
-                      Navigator.pushReplacementNamed(context, '/home');
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Đăng nhập thành công!')),
+                        );
+                        Navigator.pushReplacementNamed(context, '/home');
+                      } catch (e) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Lỗi đăng nhập: $e')),
+                        );
+                      }
                     }
                   },
                 ),

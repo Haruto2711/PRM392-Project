@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../mock_data.dart';
 import '../utils/settings_manager.dart';
+import '../utils/database_helper.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({Key? key}) : super(key: key);
@@ -10,18 +10,45 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  final _nameController = TextEditingController(text: 'Nguyễn Văn A');
-  final _phoneController = TextEditingController(text: '0987654321');
+  final _nameController = TextEditingController();
+  final _emailController = TextEditingController();
   bool _isEditing = false;
+  bool _isLoading = true;
+  Map<String, dynamic>? _currentUser;
+  int _completedCount = 0;
+  int _inProgressCount = 0;
 
-  int get _completedCount {
-    return MockData.models.where((m) => m.isCompleted).length;
+  @override
+  void initState() {
+    super.initState();
+    _loadUserProfile();
+  }
+
+  Future<void> _loadUserProfile() async {
+    final user = await DatabaseHelper.instance.getCurrentUser();
+    if (user != null) {
+      final userId = user['id'] as int;
+      final completed = await DatabaseHelper.instance.getCompletedCount(userId);
+      final inProgress = await DatabaseHelper.instance.getIncompleteProgress(userId);
+      setState(() {
+        _currentUser = user;
+        _nameController.text = user['name'] ?? 'Khách';
+        _emailController.text = user['email'] ?? '';
+        _completedCount = completed;
+        _inProgressCount = inProgress.length;
+        _isLoading = false;
+      });
+    } else {
+      setState(() {
+        _isLoading = false;
+      });
+    }
   }
 
   @override
   void dispose() {
     _nameController.dispose();
-    _phoneController.dispose();
+    _emailController.dispose();
     super.dispose();
   }
 
@@ -53,24 +80,35 @@ class _ProfileScreenState extends State<ProfileScreen> {
         actions: [
           IconButton(
             icon: Icon(_isEditing ? Icons.save : Icons.edit, color: Colors.indigo),
-            onPressed: () {
-              setState(() {
-                if (_isEditing) {
-                  // Lưu thay đổi
-                  _isEditing = false;
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text(SettingsManager.translate('profile_saved'))),
-                  );
-                } else {
-                  _isEditing = true;
+            onPressed: () async {
+              if (_isEditing) {
+                // Lưu thay đổi vào Hive
+                if (_currentUser != null) {
+                  final newName = _nameController.text.trim();
+                  if (newName.isNotEmpty) {
+                    await DatabaseHelper.instance.updateUserName(_currentUser!['email'], newName);
+                    _currentUser!['name'] = newName;
+                  }
                 }
-              });
+                setState(() {
+                  _isEditing = false;
+                });
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text(SettingsManager.translate('profile_saved'))),
+                );
+              } else {
+                setState(() {
+                  _isEditing = true;
+                });
+              }
             },
           )
         ],
       ),
       body: SafeArea(
-        child: SingleChildScrollView(
+        child: _isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : SingleChildScrollView(
           padding: const EdgeInsets.all(24.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.center,
@@ -119,9 +157,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: textColor),
               ),
               const SizedBox(height: 4),
-              const Text(
-                'origamifan@email.com',
-                style: TextStyle(color: Colors.grey, fontSize: 14),
+              Text(
+                _currentUser != null ? _currentUser!['email'] : 'email@example.com',
+                style: const TextStyle(color: Colors.grey, fontSize: 14),
               ),
               const SizedBox(height: 24),
 
@@ -160,7 +198,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     Column(
                       children: [
                         Text(
-                          '${MockData.models.where((m) => m.currentStep > 0 && !m.isCompleted).length}',
+                          '$_inProgressCount',
                           style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.amber),
                         ),
                         const SizedBox(height: 4),
@@ -193,16 +231,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
               const SizedBox(height: 16),
               TextField(
-                controller: _phoneController,
-                enabled: _isEditing,
-                keyboardType: TextInputType.phone,
-                style: TextStyle(color: Theme.of(context).textTheme.bodyLarge?.color),
+                controller: _emailController,
+                enabled: false,
+                style: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : Colors.black54),
                 decoration: InputDecoration(
-                  labelText: SettingsManager.translate('phone_number'),
+                  labelText: 'Email',
                   labelStyle: const TextStyle(color: Colors.grey),
-                  prefixIcon: const Icon(Icons.phone_outlined, color: Colors.grey),
+                  prefixIcon: const Icon(Icons.email_outlined, color: Colors.grey),
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
-                  filled: !_isEditing,
+                  filled: true,
                   fillColor: Theme.of(context).brightness == Brightness.dark
                       ? const Color(0xFF1E293B)
                       : Colors.grey.shade100,
@@ -247,8 +284,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                   padding: const EdgeInsets.symmetric(vertical: 16),
                 ),
-                onPressed: () {
-                  // Đăng xuất quay về Login
+                onPressed: () async {
+                  await DatabaseHelper.instance.logoutUser();
                   Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
                 },
                 child: Center(

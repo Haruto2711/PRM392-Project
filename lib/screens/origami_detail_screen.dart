@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../mock_data.dart';
 import 'folding_steps_screen.dart';
 import '../utils/settings_manager.dart';
+import '../utils/database_helper.dart';
 
 class OrigamiDetailScreen extends StatefulWidget {
   final OrigamiModel model;
@@ -156,18 +157,23 @@ class _OrigamiDetailScreenState extends State<OrigamiDetailScreen> {
                         model.isFavorite ? Icons.favorite : Icons.favorite_border,
                         color: model.isFavorite ? Colors.red : (Theme.of(context).brightness == Brightness.dark ? Colors.white : const Color(0xFF1E293B)),
                       ),
-                      onPressed: () {
-                        setState(() {
-                          model.isFavorite = !model.isFavorite;
-                        });
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(model.isFavorite
-                                ? SettingsManager.translate('favorite_added')
-                                : SettingsManager.translate('favorite_removed')),
-                            duration: const Duration(seconds: 1),
-                          ),
-                        );
+                      onPressed: () async {
+                        final user = await DatabaseHelper.instance.getCurrentUser();
+                        if (user != null) {
+                          final userId = user['id'] as int;
+                          await DatabaseHelper.instance.toggleFavorite(userId, model.id);
+                          setState(() {
+                            model.isFavorite = !model.isFavorite;
+                          });
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(model.isFavorite
+                                  ? SettingsManager.translate('favorite_added')
+                                  : SettingsManager.translate('favorite_removed')),
+                              duration: const Duration(seconds: 1),
+                            ),
+                          );
+                        }
                       },
                     ),
                   ),

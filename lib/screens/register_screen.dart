@@ -163,14 +163,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           _emailController.text.trim(),
                           _passwordController.text,
                         );
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Đăng ký thành công! Vui lòng đăng nhập.')),
+                        );
+                        Navigator.pop(context);
                       } catch (e) {
-                        debugPrint('Đăng ký SQLite lỗi (dùng chế độ giả lập): $e');
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Đăng ký thất bại: ${e.toString().replaceAll('Exception: ', '')}')),
+                        );
                       }
-                      
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Đăng ký thành công! Vui lòng đăng nhập.')),
-                      );
-                      Navigator.pop(context);
                     }
                   },
                 ),
