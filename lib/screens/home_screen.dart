@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../mock_data.dart';
 import 'origami_detail_screen.dart';
@@ -145,11 +146,13 @@ class _HomeScreenState extends State<HomeScreen> {
                     shape: BoxShape.circle,
                     gradient: LinearGradient(colors: [Colors.indigo, Colors.purple]),
                   ),
-                  child: const CircleAvatar(
+                  child: CircleAvatar(
                     radius: 24,
-                    backgroundImage: NetworkImage(
-                      'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150',
-                    ),
+                    backgroundImage: (_currentUser != null && _currentUser!['avatar'] != null)
+                        ? MemoryImage(base64Decode(_currentUser!['avatar']))
+                        : const NetworkImage(
+                            'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150',
+                          ) as ImageProvider,
                   ),
                 ),
               )

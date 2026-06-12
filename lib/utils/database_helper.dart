@@ -203,6 +203,17 @@ class DatabaseHelper {
     }
   }
 
+  // Cập nhật ảnh đại diện của User
+  Future<void> updateUserAvatar(String email, String base64Image) async {
+    final user = _usersBox.get(email);
+    if (user != null) {
+      final userMap = Map<String, dynamic>.from(user);
+      userMap['avatar'] = base64Image;
+      await _usersBox.put(email, userMap);
+      await setCurrentUser(userMap); // Cập nhật session hiện tại luôn
+    }
+  }
+
   // Lấy toàn bộ danh sách mẫu Origami
   Future<List<Map<String, dynamic>>> getOrigamiModels() async {
     final List<Map<String, dynamic>> models = [];

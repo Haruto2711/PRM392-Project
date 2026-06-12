@@ -1,4 +1,6 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import '../utils/settings_manager.dart';
 import '../utils/database_helper.dart';
 
@@ -42,6 +44,35 @@ class _ProfileScreenState extends State<ProfileScreen> {
       setState(() {
         _isLoading = false;
       });
+    }
+  }
+
+  Future<void> _pickAndUploadAvatar() async {
+    final ImagePicker picker = ImagePicker();
+    try {
+      final XFile? image = await picker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 500,
+        maxHeight: 500,
+        imageQuality: 80,
+      );
+      if (image != null) {
+        final bytes = await image.readAsBytes();
+        final base64String = base64Encode(bytes);
+        if (_currentUser != null) {
+          await DatabaseHelper.instance.updateUserAvatar(_currentUser!['email'], base64String);
+          setState(() {
+            _currentUser!['avatar'] = base64String;
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Tải ảnh đại diện thành công!')),
+          );
+        }
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Không thể chọn ảnh: $e')),
+      );
     }
   }
 
@@ -123,11 +154,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       backgroundColor: Theme.of(context).brightness == Brightness.dark
                           ? const Color(0xFF1E293B)
                           : Colors.indigo.shade50,
-                      child: const CircleAvatar(
+                      child: CircleAvatar(
                         radius: 60,
-                        backgroundImage: NetworkImage(
-                          'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=250',
-                        ),
+                        backgroundImage: (_currentUser != null && _currentUser!['avatar'] != null)
+                            ? MemoryImage(base64Decode(_currentUser!['avatar']))
+                            : const NetworkImage(
+                                'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=250',
+                              ) as ImageProvider,
                       ),
                     ),
                     Positioned(
@@ -138,11 +171,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         radius: 18,
                         child: IconButton(
                           icon: const Icon(Icons.camera_alt, size: 16, color: Colors.white),
-                          onPressed: () {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text(SettingsManager.translate('avatar_feature_dev'))),
-                            );
-                          },
+                          onPressed: _pickAndUploadAvatar,
                         ),
                       ),
                     ),
@@ -153,7 +182,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
               // User Info details
               Text(
-                'Nguyễn Văn A',
+                _currentUser != null ? _currentUser!['name'] : 'Khách',
                 style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: textColor),
               ),
               const SizedBox(height: 4),
