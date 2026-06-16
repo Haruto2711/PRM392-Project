@@ -19,6 +19,8 @@ class _HomeScreenState extends State<HomeScreen> {
   int _currentIndex = 0;
   String _selectedCategory = 'Tất cả';
   String _selectedDifficulty = 'Tất cả';
+  String _searchQuery = '';
+  final _searchController = TextEditingController();
 
   Map<String, dynamic>? _currentUser;
   List<OrigamiModel> _allModels = [];
@@ -28,6 +30,12 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     _loadData();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadData() async {
@@ -160,6 +168,49 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           const SizedBox(height: 20),
 
+          // Search Bar
+          Container(
+            decoration: BoxDecoration(
+              color: Theme.of(context).cardColor,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(Theme.of(context).brightness == Brightness.dark ? 0.2 : 0.03),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                )
+              ],
+            ),
+            child: TextField(
+              controller: _searchController,
+              style: TextStyle(color: Theme.of(context).textTheme.bodyLarge?.color),
+              decoration: InputDecoration(
+                hintText: SettingsManager.translate('search_hint'),
+                hintStyle: const TextStyle(color: Colors.grey),
+                prefixIcon: const Icon(Icons.search, color: Colors.indigo),
+                suffixIcon: _searchQuery.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear, color: Colors.grey),
+                        onPressed: () {
+                          setState(() {
+                            _searchController.clear();
+                            _searchQuery = '';
+                          });
+                        },
+                      )
+                    : null,
+                border: InputBorder.none,
+                contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              ),
+              onChanged: (val) {
+                setState(() {
+                  _searchQuery = val.trim();
+                });
+              },
+            ),
+          ),
+          const SizedBox(height: 20),
+
           // Banner Thử thách
           Container(
             padding: const EdgeInsets.all(20),
@@ -284,20 +335,40 @@ class _HomeScreenState extends State<HomeScreen> {
             ],
           ),
           const SizedBox(height: 12),
-          GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              crossAxisSpacing: 16,
-              mainAxisSpacing: 16,
-              childAspectRatio: 0.78,
-            ),
-            itemCount: _allModels.take(2).length,
-            itemBuilder: (context, index) {
-              return _buildOrigamiCard(_allModels[index]);
-            },
-          ),
+          () {
+            final homeModels = _searchQuery.isEmpty
+                ? _allModels
+                : _allModels
+                    .where((m) => m.title.toLowerCase().contains(_searchQuery.toLowerCase()))
+                    .toList();
+            if (homeModels.isEmpty) {
+              return Padding(
+                padding: const EdgeInsets.symmetric(vertical: 20),
+                child: Center(
+                  child: Text(
+                    SettingsManager.translate('all') == 'All'
+                        ? 'No models found matching your search'
+                        : 'Không tìm thấy mẫu nào phù hợp',
+                    style: const TextStyle(color: Colors.grey),
+                  ),
+                ),
+              );
+            }
+            return GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                crossAxisSpacing: 16,
+                mainAxisSpacing: 16,
+                childAspectRatio: 0.78,
+              ),
+              itemCount: homeModels.take(2).length,
+              itemBuilder: (context, index) {
+                return _buildOrigamiCard(homeModels[index]);
+              },
+            );
+          }(),
         ],
       ),
     );
@@ -305,14 +376,16 @@ class _HomeScreenState extends State<HomeScreen> {
 
   // ================= TAB 1: KHÁM PHÁ (DANH SÁCH ORIGAMI) =================
   Widget _buildExploreTab() {
-    // Lọc theo bộ lọc danh mục và độ khó
+    // Lọc theo bộ lọc danh mục, độ khó và tìm kiếm
     final filteredModels = _allModels.where((m) {
       final matchCategory = _selectedCategory == 'Tất cả' || m.category == _selectedCategory;
       final matchDifficulty = _selectedDifficulty == 'Tất cả' ||
           (_selectedDifficulty == 'Dễ' && m.difficulty <= 2) ||
           (_selectedDifficulty == 'Trung bình' && m.difficulty == 3) ||
           (_selectedDifficulty == 'Khó' && m.difficulty >= 4);
-      return matchCategory && matchDifficulty;
+      final matchSearch = _searchQuery.isEmpty ||
+          m.title.toLowerCase().contains(_searchQuery.toLowerCase());
+      return matchCategory && matchDifficulty && matchSearch;
     }).toList();
 
     return Padding(
@@ -335,6 +408,49 @@ class _HomeScreenState extends State<HomeScreen> {
               const SizedBox(width: 8),
               const Icon(Icons.explore, color: Colors.indigo, size: 24),
             ],
+          ),
+          const SizedBox(height: 16),
+
+          // Search Bar
+          Container(
+            decoration: BoxDecoration(
+              color: Theme.of(context).cardColor,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(Theme.of(context).brightness == Brightness.dark ? 0.2 : 0.03),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                )
+              ],
+            ),
+            child: TextField(
+              controller: _searchController,
+              style: TextStyle(color: Theme.of(context).textTheme.bodyLarge?.color),
+              decoration: InputDecoration(
+                hintText: SettingsManager.translate('search_hint'),
+                hintStyle: const TextStyle(color: Colors.grey),
+                prefixIcon: const Icon(Icons.search, color: Colors.indigo),
+                suffixIcon: _searchQuery.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear, color: Colors.grey),
+                        onPressed: () {
+                          setState(() {
+                            _searchController.clear();
+                            _searchQuery = '';
+                          });
+                        },
+                      )
+                    : null,
+                border: InputBorder.none,
+                contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              ),
+              onChanged: (val) {
+                setState(() {
+                  _searchQuery = val.trim();
+                });
+              },
+            ),
           ),
           const SizedBox(height: 16),
 
@@ -394,7 +510,14 @@ class _HomeScreenState extends State<HomeScreen> {
           // Lưới các mẫu gấp đã lọc
           Expanded(
             child: filteredModels.isEmpty
-                ? const Center(child: Text('Không tìm thấy mẫu phù hợp.'))
+                ? Center(
+                    child: Text(
+                      SettingsManager.translate('all') == 'All'
+                          ? 'No models found matching your search or filters'
+                          : 'Không tìm thấy mẫu phù hợp.',
+                      style: const TextStyle(color: Colors.grey),
+                    ),
+                  )
                 : GridView.builder(
                     gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                       crossAxisCount: 2,
@@ -583,7 +706,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     );
                   },
                 ),
-                const Divider(height: 1, indent: 56),
+                /* const Divider(height: 1, indent: 56),
                 _buildSettingRow(
                   icon: Icons.delete_sweep,
                   color: Colors.orange,
@@ -591,9 +714,9 @@ class _HomeScreenState extends State<HomeScreen> {
                   onTap: () {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(content: Text(SettingsManager.translate('cache_cleared'))),
-                    );
+                    ); 
                   },
-                ),
+                ), */
                 const Divider(height: 1, indent: 56),
                 _buildSettingRow(
                   icon: Icons.info_outline,
