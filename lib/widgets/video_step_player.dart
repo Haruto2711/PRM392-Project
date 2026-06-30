@@ -409,31 +409,34 @@ class _VideoStepPlayerState extends State<VideoStepPlayer> {
                     children: [
                       // Bộ nút tua nhanh/chậm và Play/Pause ở chính giữa
                       Center(
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                          children: [
-                            // Nút tua lại 10 giây
-                            IconButton(
-                              icon: const Icon(Icons.replay_10, size: 36, color: Colors.white),
-                              onPressed: _seekBackward,
-                            ),
-                            // Nút Play/Pause chính giữa lớn
-                            IconButton(
-                              icon: Icon(
-                                _controller.value.isPlaying
-                                    ? Icons.pause_circle_filled
-                                    : Icons.play_circle_filled,
-                                size: 56,
-                                color: Colors.white,
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                            children: [
+                              // Nút tua lại 10 giây
+                              IconButton(
+                                icon: const Icon(Icons.replay_10, size: 36, color: Colors.white),
+                                onPressed: _seekBackward,
                               ),
-                              onPressed: _togglePlay,
-                            ),
-                            // Nút tua đi 10 giây
-                            IconButton(
-                              icon: const Icon(Icons.forward_10, size: 36, color: Colors.white),
-                              onPressed: _seekForward,
-                            ),
-                          ],
+                              // Nút Play/Pause chính giữa lớn
+                              IconButton(
+                                icon: Icon(
+                                  _controller.value.isPlaying
+                                      ? Icons.pause_circle_filled
+                                      : Icons.play_circle_filled,
+                                  size: 56,
+                                  color: Colors.white,
+                                ),
+                                onPressed: _togglePlay,
+                              ),
+                              // Nút tua đi 10 giây
+                              IconButton(
+                                icon: const Icon(Icons.forward_10, size: 36, color: Colors.white),
+                                onPressed: _seekForward,
+                              ),
+                            ],
+                          ),
                         ),
                       ),
 
@@ -456,62 +459,69 @@ class _VideoStepPlayerState extends State<VideoStepPlayer> {
                             children: [
                               // Thanh trượt tua video tự vẽ kiểu YouTube hỗ trợ chạm bất kỳ điểm nào để tua
                               _buildProgressBar(),
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  // Hiển thị thời gian dạng 0:22 / 2:48
-                                  Text(
-                                    durationText,
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-                                  Row(
+                              FittedBox(
+                                fit: BoxFit.scaleDown,
+                                alignment: Alignment.centerLeft,
+                                child: SizedBox(
+                                  width: MediaQuery.of(context).size.width, // Provide a base constraints width to allow scaling down
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                     children: [
-                                      // Nút điều chỉnh tốc độ (Speed selector)
-                                      GestureDetector(
-                                        onTap: _cycleSpeed,
-                                        child: Container(
-                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                          decoration: BoxDecoration(
-                                            color: Colors.white12,
-                                            borderRadius: BorderRadius.circular(4),
-                                          ),
-                                          child: Text(
-                                            "${_currentSpeed}x",
-                                            style: const TextStyle(
-                                              color: Colors.white,
-                                              fontSize: 11,
-                                              fontWeight: FontWeight.bold,
+                                      // Hiển thị thời gian dạng 0:22 / 2:48
+                                      Text(
+                                        durationText,
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                      Row(
+                                        children: [
+                                          // Nút điều chỉnh tốc độ (Speed selector)
+                                          GestureDetector(
+                                            onTap: _cycleSpeed,
+                                            child: Container(
+                                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                              decoration: BoxDecoration(
+                                                color: Colors.white12,
+                                                borderRadius: BorderRadius.circular(4),
+                                              ),
+                                              child: Text(
+                                                "${_currentSpeed}x",
+                                                style: const TextStyle(
+                                                  color: Colors.white,
+                                                  fontSize: 11,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
                                             ),
                                           ),
-                                        ),
-                                      ),
-                                      const SizedBox(width: 12),
-                                      // Nút Mute/Unmute
-                                      GestureDetector(
-                                        onTap: _toggleMute,
-                                        child: Icon(
-                                          _isMuted ? Icons.volume_off : Icons.volume_up,
-                                          color: Colors.white,
-                                          size: 20,
-                                        ),
-                                      ),
-                                      const SizedBox(width: 12),
-                                      // Nút Fullscreen
-                                      GestureDetector(
-                                        onTap: _toggleFullscreen,
-                                        child: const Icon(
-                                          Icons.fullscreen,
-                                          color: Colors.white,
-                                          size: 22,
-                                        ),
-                                      ),
+                                          const SizedBox(width: 12),
+                                          // Nút Mute/Unmute
+                                          GestureDetector(
+                                            onTap: _toggleMute,
+                                            child: Icon(
+                                              _isMuted ? Icons.volume_off : Icons.volume_up,
+                                              color: Colors.white,
+                                              size: 20,
+                                            ),
+                                          ),
+                                          const SizedBox(width: 12),
+                                          // Nút Fullscreen
+                                          GestureDetector(
+                                            onTap: _toggleFullscreen,
+                                            child: const Icon(
+                                              Icons.fullscreen,
+                                              color: Colors.white,
+                                              size: 22,
+                                            ),
+                                          ),
+                                        ],
+                                      )
                                     ],
-                                  )
-                                ],
+                                  ),
+                                ),
                               ),
                             ],
                           ),
