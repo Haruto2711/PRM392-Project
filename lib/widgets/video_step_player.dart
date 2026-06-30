@@ -637,6 +637,18 @@ class _FullscreenVideoPlayerState extends State<FullscreenVideoPlayer> {
   double _currentSpeed = 1.0;
   bool _isMuted = false;
   final List<double> _speeds = [0.5, 0.75, 1.0, 1.25, 1.5, 2.0];
+  BoxFit _boxFit = BoxFit.cover; // Default to fill the screen (occupy full width/height)
+
+  void _toggleBoxFit() {
+    _resetHideTimer();
+    setState(() {
+      if (_boxFit == BoxFit.cover) {
+        _boxFit = BoxFit.contain;
+      } else {
+        _boxFit = BoxFit.cover;
+      }
+    });
+  }
 
   @override
   void initState() {
@@ -751,10 +763,14 @@ class _FullscreenVideoPlayerState extends State<FullscreenVideoPlayer> {
                 _resetHideTimer();
               }
             },
-            child: Center(
-              child: AspectRatio(
-                aspectRatio: widget.controller.value.aspectRatio,
-                child: VideoPlayer(widget.controller),
+            child: SizedBox.expand(
+              child: FittedBox(
+                fit: _boxFit,
+                child: SizedBox(
+                  width: widget.controller.value.size.width > 0 ? widget.controller.value.size.width : 16,
+                  height: widget.controller.value.size.height > 0 ? widget.controller.value.size.height : 9,
+                  child: VideoPlayer(widget.controller),
+                ),
               ),
             ),
           ),
@@ -796,6 +812,20 @@ class _FullscreenVideoPlayerState extends State<FullscreenVideoPlayer> {
                       ),
                     ),
 
+                    // Zoom / Fit screen button (top-right next to exit button)
+                    Positioned(
+                      top: 24,
+                      right: 80,
+                      child: IconButton(
+                        icon: Icon(
+                          _boxFit == BoxFit.contain ? Icons.aspect_ratio : Icons.fit_screen,
+                          size: 32,
+                          color: Colors.white,
+                        ),
+                        tooltip: _boxFit == BoxFit.contain ? 'Xem tràn viền' : 'Xem tỷ lệ gốc',
+                        onPressed: _toggleBoxFit,
+                      ),
+                    ),
                     // Exit fullscreen button (top-right)
                     Positioned(
                       top: 24,
