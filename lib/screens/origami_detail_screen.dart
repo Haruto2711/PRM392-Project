@@ -301,23 +301,7 @@ class _OrigamiDetailScreenState extends State<OrigamiDetailScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Play Icon in circle at the top center
-              Center(
-                child: Container(
-                  width: 44,
-                  height: 44,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.12),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.play_arrow,
-                    color: Colors.white,
-                    size: 24,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 12),
+
               // Playful Title Text
               Center(
                 child: Text(
