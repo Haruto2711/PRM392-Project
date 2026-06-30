@@ -189,6 +189,7 @@ class _FoldingStepsScreenState extends State<FoldingStepsScreen> {
                               looping: true,
                               startMuted: true,
                               showControls: true,
+                              isMini: true,
                             ),
                           );
                         }

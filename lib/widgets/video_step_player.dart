@@ -13,6 +13,7 @@ class VideoStepPlayer extends StatefulWidget {
   final bool looping;
   final bool startMuted;
   final bool showControls;
+  final bool isMini;
 
   const VideoStepPlayer({
     Key? key,
@@ -21,6 +22,7 @@ class VideoStepPlayer extends StatefulWidget {
     this.looping = true,
     this.startMuted = true,
     this.showControls = true,
+    this.isMini = false,
   }) : super(key: key);
 
   @override
@@ -408,37 +410,38 @@ class _VideoStepPlayerState extends State<VideoStepPlayer> {
                   child: Stack(
                     children: [
                       // Bộ nút tua nhanh/chậm và Play/Pause ở chính giữa
-                      Center(
-                        child: FittedBox(
-                          fit: BoxFit.scaleDown,
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                            children: [
-                              // Nút tua lại 10 giây
-                              IconButton(
-                                icon: const Icon(Icons.replay_10, size: 36, color: Colors.white),
-                                onPressed: _seekBackward,
-                              ),
-                              // Nút Play/Pause chính giữa lớn
-                              IconButton(
-                                icon: Icon(
-                                  _controller.value.isPlaying
-                                      ? Icons.pause_circle_filled
-                                      : Icons.play_circle_filled,
-                                  size: 56,
-                                  color: Colors.white,
+                      if (!widget.isMini)
+                        Center(
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                              children: [
+                                // Nút tua lại 10 giây
+                                IconButton(
+                                  icon: const Icon(Icons.replay_10, size: 36, color: Colors.white),
+                                  onPressed: _seekBackward,
                                 ),
-                                onPressed: _togglePlay,
-                              ),
-                              // Nút tua đi 10 giây
-                              IconButton(
-                                icon: const Icon(Icons.forward_10, size: 36, color: Colors.white),
-                                onPressed: _seekForward,
-                              ),
-                            ],
+                                // Nút Play/Pause chính giữa lớn
+                                IconButton(
+                                  icon: Icon(
+                                    _controller.value.isPlaying
+                                        ? Icons.pause_circle_filled
+                                        : Icons.play_circle_filled,
+                                    size: 56,
+                                    color: Colors.white,
+                                  ),
+                                  onPressed: _togglePlay,
+                                ),
+                                // Nút tua đi 10 giây
+                                IconButton(
+                                  icon: const Icon(Icons.forward_10, size: 36, color: Colors.white),
+                                  onPressed: _seekForward,
+                                ),
+                              ],
+                            ),
                           ),
                         ),
-                      ),
 
                       // Bảng điều khiển đáy (Thanh trượt, thời gian, tốc độ, volume)
                       Positioned(
@@ -446,7 +449,9 @@ class _VideoStepPlayerState extends State<VideoStepPlayer> {
                         left: 0,
                         right: 0,
                         child: Container(
-                          padding: const EdgeInsets.only(left: 12, right: 12, bottom: 8, top: 4),
+                          padding: widget.isMini
+                              ? const EdgeInsets.only(left: 8, right: 8, bottom: 4, top: 4)
+                              : const EdgeInsets.only(left: 12, right: 12, bottom: 8, top: 4),
                           decoration: BoxDecoration(
                             gradient: LinearGradient(
                               colors: [Colors.transparent, Colors.black.withOpacity(0.64)],
@@ -457,72 +462,144 @@ class _VideoStepPlayerState extends State<VideoStepPlayer> {
                           child: Column(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              // Thanh trượt tua video tự vẽ kiểu YouTube hỗ trợ chạm bất kỳ điểm nào để tua
-                              _buildProgressBar(),
-                              FittedBox(
-                                fit: BoxFit.scaleDown,
-                                alignment: Alignment.centerLeft,
-                                child: SizedBox(
-                                  width: MediaQuery.of(context).size.width, // Provide a base constraints width to allow scaling down
-                                  child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      // Hiển thị thời gian dạng 0:22 / 2:48
-                                      Text(
-                                        durationText,
-                                        style: const TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.w500,
+                              if (widget.isMini) ...[
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        // Play/Pause icon
+                                        GestureDetector(
+                                          onTap: _togglePlay,
+                                          child: Icon(
+                                            _controller.value.isPlaying
+                                                ? Icons.pause
+                                                : Icons.play_arrow,
+                                            color: Colors.white,
+                                            size: 22,
+                                          ),
                                         ),
-                                      ),
-                                      Row(
-                                        children: [
-                                          // Nút điều chỉnh tốc độ (Speed selector)
-                                          GestureDetector(
-                                            onTap: _cycleSpeed,
-                                            child: Container(
-                                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                              decoration: BoxDecoration(
-                                                color: Colors.white12,
-                                                borderRadius: BorderRadius.circular(4),
-                                              ),
-                                              child: Text(
-                                                "${_currentSpeed}x",
-                                                style: const TextStyle(
-                                                  color: Colors.white,
-                                                  fontSize: 11,
-                                                  fontWeight: FontWeight.bold,
+                                        const SizedBox(width: 12),
+                                        // Mute/Unmute icon
+                                        GestureDetector(
+                                          onTap: _toggleMute,
+                                          child: Icon(
+                                            _isMuted ? Icons.volume_off : Icons.volume_up,
+                                            color: Colors.white,
+                                            size: 18,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    Row(
+                                      children: [
+                                        // Speed button
+                                        GestureDetector(
+                                          onTap: _cycleSpeed,
+                                          child: Text(
+                                            "${_currentSpeed}x",
+                                            style: const TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 16),
+                                        // Fullscreen button
+                                        GestureDetector(
+                                          onTap: _toggleFullscreen,
+                                          child: const Icon(
+                                            Icons.fullscreen,
+                                            color: Colors.white,
+                                            size: 20,
+                                          ),
+                                        ),
+                                      ],
+                                    )
+                                  ],
+                                ),
+                                const SizedBox(height: 6),
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(2),
+                                  child: VideoProgressIndicator(
+                                    _controller,
+                                    allowScrubbing: true,
+                                    colors: const VideoProgressColors(
+                                      playedColor: Colors.redAccent,
+                                      bufferedColor: Colors.white24,
+                                      backgroundColor: Colors.white12,
+                                    ),
+                                  ),
+                                ),
+                              ] else ...[
+                                // Thanh trượt tua video tự vẽ kiểu YouTube hỗ trợ chạm bất kỳ điểm nào để tua
+                                _buildProgressBar(),
+                                FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  alignment: Alignment.centerLeft,
+                                  child: SizedBox(
+                                    width: MediaQuery.of(context).size.width, // Provide a base constraints width to allow scaling down
+                                    child: Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        // Hiển thị thời gian dạng 0:22 / 2:48
+                                        Text(
+                                          durationText,
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                        Row(
+                                          children: [
+                                            // Nút điều chỉnh tốc độ (Speed selector)
+                                            GestureDetector(
+                                              onTap: _cycleSpeed,
+                                              child: Container(
+                                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                                decoration: BoxDecoration(
+                                                  color: Colors.white12,
+                                                  borderRadius: BorderRadius.circular(4),
+                                                ),
+                                                child: Text(
+                                                  "${_currentSpeed}x",
+                                                  style: const TextStyle(
+                                                    color: Colors.white,
+                                                    fontSize: 11,
+                                                    fontWeight: FontWeight.bold,
+                                                  ),
                                                 ),
                                               ),
                                             ),
-                                          ),
-                                          const SizedBox(width: 12),
-                                          // Nút Mute/Unmute
-                                          GestureDetector(
-                                            onTap: _toggleMute,
-                                            child: Icon(
-                                              _isMuted ? Icons.volume_off : Icons.volume_up,
-                                              color: Colors.white,
-                                              size: 20,
+                                            const SizedBox(width: 12),
+                                            // Nút Mute/Unmute
+                                            GestureDetector(
+                                              onTap: _toggleMute,
+                                              child: Icon(
+                                                _isMuted ? Icons.volume_off : Icons.volume_up,
+                                                color: Colors.white,
+                                                size: 20,
+                                              ),
                                             ),
-                                          ),
-                                          const SizedBox(width: 12),
-                                          // Nút Fullscreen
-                                          GestureDetector(
-                                            onTap: _toggleFullscreen,
-                                            child: const Icon(
-                                              Icons.fullscreen,
-                                              color: Colors.white,
-                                              size: 22,
+                                            const SizedBox(width: 12),
+                                            // Nút Fullscreen
+                                            GestureDetector(
+                                              onTap: _toggleFullscreen,
+                                              child: const Icon(
+                                                Icons.fullscreen,
+                                                color: Colors.white,
+                                                size: 22,
+                                              ),
                                             ),
-                                          ),
-                                        ],
-                                      )
-                                    ],
+                                          ],
+                                        )
+                                      ],
+                                    ),
                                   ),
                                 ),
-                              ),
+                              ],
                             ],
                           ),
                         ),
