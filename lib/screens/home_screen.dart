@@ -7,6 +7,7 @@ import 'setting_details_screen.dart';
 import 'profile_screen.dart';
 import '../utils/settings_manager.dart';
 import '../utils/database_helper.dart';
+import '../widgets/origami_cover_image.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -800,12 +801,9 @@ class _HomeScreenState extends State<HomeScreen> {
                 clipBehavior: Clip.antiAlias,
                 child: Hero(
                   tag: 'model-${model.id}',
-                  child: Image.asset(
-                    model.imagePath,
+                  child: OrigamiCoverImage(
+                    imagePath: model.imagePath,
                     fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) => const Center(
-                      child: Icon(Icons.menu_book, size: 48, color: Colors.indigo),
-                    ),
                   ),
                 ),
               ),
@@ -886,10 +884,9 @@ class _HomeScreenState extends State<HomeScreen> {
               borderRadius: BorderRadius.circular(16),
             ),
             clipBehavior: Clip.antiAlias,
-            child: Image.asset(
-              model.imagePath,
+            child: OrigamiCoverImage(
+              imagePath: model.imagePath,
               fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) => const Icon(Icons.gesture, size: 28, color: Colors.indigo),
             ),
           ),
           const SizedBox(width: 16),

@@ -78,15 +78,25 @@ class _LoginScreenState extends State<LoginScreen> {
                         height: 80,
                         width: 80,
                         decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                            colors: [Colors.indigo, Colors.purple],
-                          ),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: const Icon(
-                          Icons.insights,
                           color: Colors.white,
-                          size: 40,
+                          borderRadius: BorderRadius.circular(20),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.05),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(20),
+                          child: Padding(
+                            padding: const EdgeInsets.all(8.0), // Padding to make it look balanced inside the container
+                            child: Image.asset(
+                              'assets/images/app_logo.png',
+                              fit: BoxFit.contain,
+                            ),
+                          ),
                         ),
                       ),
                       const SizedBox(height: 16),

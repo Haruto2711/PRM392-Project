@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:hive_flutter/hive_flutter.dart';
 import 'screens/login_screen.dart';
 import 'screens/register_screen.dart';
 import 'screens/login_guide_screen.dart';
@@ -9,7 +8,6 @@ import 'utils/database_helper.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Hive.initFlutter();
   await DatabaseHelper.instance.init();
   runApp(const OrigamiApp());
 }

@@ -158,15 +158,19 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   onPressed: () async {
                     if (_formKey.currentState!.validate()) {
                       try {
-                        await DatabaseHelper.instance.registerUser(
-                          _nameController.text.trim(),
-                          _emailController.text.trim(),
-                          _passwordController.text,
-                        );
+                        final name = _nameController.text.trim();
+                        final email = _emailController.text.trim();
+                        final password = _passwordController.text;
+
+                        await DatabaseHelper.instance.registerUser(name, email, password);
+                        
+                        // Tự động đăng nhập luôn sau khi đăng ký
+                        await DatabaseHelper.instance.loginUser(email, password);
+
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Đăng ký thành công! Vui lòng đăng nhập.')),
+                          const SnackBar(content: Text('Đăng ký và Đăng nhập thành công!')),
                         );
-                        Navigator.pop(context);
+                        Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
                       } catch (e) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(content: Text('Đăng ký thất bại: ${e.toString().replaceAll('Exception: ', '')}')),
