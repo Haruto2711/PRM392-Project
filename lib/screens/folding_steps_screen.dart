@@ -189,6 +189,7 @@ class _FoldingStepsScreenState extends State<FoldingStepsScreen> {
                               looping: true,
                               startMuted: true,
                               showControls: true,
+                              isMini: true,
                             ),
                           );
                         }
@@ -372,81 +373,134 @@ class _FoldingStepsScreenState extends State<FoldingStepsScreen> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      enableDrag: false, // Vô hiệu hóa kéo để tránh xung đột cử chỉ tua video
       backgroundColor: Colors.transparent,
       builder: (context) {
-        return Container(
-          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
-          decoration: BoxDecoration(
-            color: const Color(0xFF3B4252), // Beautiful dark slate color matching the screenshot
-            borderRadius: BorderRadius.circular(28),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.35),
-                blurRadius: 20,
-                offset: const Offset(0, 10),
-              )
-            ],
-          ),
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-
-              // Playful Title Text
-              Center(
-                child: Text(
-                  SettingsManager.translate('all') == 'All'
-                      ? 'Watch the $title Video Tutorial'
-                      : 'Xem Video Hướng Dẫn $title',
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                    fontStyle: FontStyle.italic,
-                    letterSpacing: 0.5,
-                  ),
-                ),
+        return DraggableScrollableSheet(
+          initialChildSize: 0.85,
+          minChildSize: 0.5,
+          maxChildSize: 0.95,
+          expand: false,
+          builder: (context, scrollController) {
+            return Container(
+              decoration: const BoxDecoration(
+                color: Color(0xFF0F172A), // Slate black YouTube color
+                borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
               ),
-              const SizedBox(height: 20),
-              // Video Player Frame
-              AspectRatio(
-                aspectRatio: 16 / 9,
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(16),
-                  child: Container(
-                    color: Colors.black,
-                    child: VideoStepPlayer(
-                      assetPath: videoPath,
-                      startMuted: false,
-                      showControls: true,
-                      looping: false,
+              child: Column(
+                children: [
+                  // Drag indicator handle
+                  Container(
+                    margin: const EdgeInsets.symmetric(vertical: 12),
+                    width: 36,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(2),
                     ),
                   ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              // Close Button
-              Center(
-                child: TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  style: TextButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-                  ),
-                  child: Text(
-                    SettingsManager.translate('all') == 'All' ? 'Close' : 'Đóng',
-                    style: const TextStyle(
-                      color: Colors.white70,
-                      fontSize: 15,
-                      fontWeight: FontWeight.bold,
+                  // Top Video Player (full width, rectangular)
+                  AspectRatio(
+                    aspectRatio: 16 / 9,
+                    child: Container(
+                      color: Colors.black,
+                      child: VideoStepPlayer(
+                        assetPath: videoPath,
+                        startMuted: false,
+                        showControls: true,
+                        looping: false,
+                      ),
                     ),
                   ),
-                ),
+                  // Scrollable metadata and steps list
+                  Expanded(
+                    child: ListView(
+                      controller: scrollController,
+                      padding: const EdgeInsets.all(16),
+                      children: [
+                        Text(
+                          SettingsManager.translate('all') == 'All'
+                              ? 'Watch the $title Video Tutorial'
+                              : 'Xem Video Hướng Dẫn $title',
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        // Channel info header
+                        Row(
+                          children: [
+                            const CircleAvatar(
+                              radius: 18,
+                              backgroundColor: Colors.redAccent,
+                              child: Icon(Icons.play_arrow, color: Colors.white, size: 18),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    SettingsManager.translate('all') == 'All' ? 'Origami Master' : 'Bậc Thầy Origami',
+                                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+                                  ),
+                                  Text(
+                                    SettingsManager.translate('all') == 'All' ? 'Official Video Tutorial' : 'Video hướng dẫn chính thức',
+                                    style: const TextStyle(color: Colors.grey, fontSize: 11),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            TextButton(
+                              onPressed: () => Navigator.pop(context),
+                              child: Text(
+                                SettingsManager.translate('all') == 'All' ? 'Close' : 'Đóng',
+                                style: const TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold),
+                              ),
+                            )
+                          ],
+                        ),
+                        const Divider(color: Colors.white12, height: 24),
+                        // Steps List
+                        Text(
+                          SettingsManager.translate('all') == 'All' ? 'Steps Description:' : 'Mô tả các bước gấp:',
+                          style: const TextStyle(color: Colors.white70, fontWeight: FontWeight.bold, fontSize: 14),
+                        ),
+                        const SizedBox(height: 12),
+                        ...List.generate(widget.model.steps.length, (index) {
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 8),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                CircleAvatar(
+                                  radius: 9,
+                                  backgroundColor: Colors.indigo,
+                                  child: Text(
+                                    "${index + 1}",
+                                    style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold),
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Text(
+                                    widget.model.steps[index],
+                                    style: const TextStyle(color: Colors.white, fontSize: 13, height: 1.4),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        }),
+                        const SizedBox(height: 24),
+                      ],
+                    ),
+                  ),
+                ],
               ),
-            ],
-          ),
+            );
+          },
         );
       },
     );
