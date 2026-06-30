@@ -23,19 +23,35 @@ class CongratsScreen extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               const Spacer(),
-              // Trophy/Achievement icon
+              // Ảnh mẫu Origami đã hoàn thành (Complete.png)
               Center(
                 child: Container(
-                  height: 120,
-                  width: 120,
+                  height: 180,
+                  width: 320,
                   decoration: BoxDecoration(
-                    color: isDark ? Colors.amber.withOpacity(0.15) : Colors.amber.shade50,
-                    shape: BoxShape.circle,
+                    color: isDark ? const Color(0xFF1E293B) : const Color(0xFFEEF2F6),
+                    borderRadius: BorderRadius.circular(24),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(isDark ? 0.25 : 0.04),
+                        blurRadius: 15,
+                        offset: const Offset(0, 6),
+                      )
+                    ],
                   ),
-                  child: const Icon(
-                    Icons.emoji_events,
-                    size: 80,
-                    color: Colors.amber,
+                  clipBehavior: Clip.antiAlias,
+                  child: Image.asset(
+                    model.imagePath.replaceAll('Cover.png', 'Complete.png'),
+                    fit: BoxFit.contain,
+                    errorBuilder: (context, error, stackTrace) {
+                      return Center(
+                        child: Icon(
+                          Icons.emoji_events,
+                          size: 80,
+                          color: Colors.amber.shade400,
+                        ),
+                      );
+                    },
                   ),
                 ),
               ),

@@ -1,236 +1,129 @@
 import 'dart:async';
-import 'package:hive/hive.dart';
-import 'package:hive_flutter/hive_flutter.dart';
+import 'dart:convert';
+import 'package:sqflite/sqflite.dart';
+import 'package:path/path.dart';
 import '../mock_data.dart';
 
 class DatabaseHelper {
   static final DatabaseHelper instance = DatabaseHelper._init();
+  static Database? _database;
 
   DatabaseHelper._init();
 
-  late Box _usersBox;
-  late Box _modelsBox;
-  late Box _progressBox;
-  late Box _favoritesBox;
-  late Box _sessionBox;
-
-  // Khởi tạo Hive boxes và seed dữ liệu nếu rỗng
-  Future<void> init() async {
-    _usersBox = await Hive.openBox('users');
-    _modelsBox = await Hive.openBox('origami_models');
-    _progressBox = await Hive.openBox('user_progress');
-    _favoritesBox = await Hive.openBox('favorites');
-    _sessionBox = await Hive.openBox('session');
-
-    await _seedInitialData();
+  Future<Database> get database async {
+    if (_database != null) return _database!;
+    _database = await _initDB('origami_master.db');
+    return _database!;
   }
 
-  Future<void> _seedInitialData() async {
-    // Seed các mẫu Origami cơ bản
-    final initialModels = [
-      {
-        'id': 1,
-        'title': 'Chim Hạc Giấy',
-        'difficulty': 2,
-        'category': 'Động vật',
-        'steps_count': 9,
-        'time_estimate': '5 phút',
-        'description': 'Mẫu gấp chim hạc giấy truyền thống của Nhật Bản, biểu tượng của sự hòa bình và may mắn.',
-        'image_path': 'assets/images/crane_complete.png',
-        'steps': [
-          'Gấp đôi tờ giấy theo cả hai đường chéo, sau đó mở ra tạo nếp gấp hình chữ X.',
-          'Lật tờ giấy, gấp đôi theo chiều ngang và dọc để tạo nếp gấp hình chữ thập (+).',
-          'Khéo léo túm bốn góc giấy chụm vào nhau, xẹp xuống thành hình vuông nhỏ (Square Base).',
-          'Gập mép hai bên góc mở vào đường giữa tạo thành hình diều (Kite fold).',
-          'Gấp góc nhọn đỉnh xuống dưới lấy nếp, mở các mép ra rồi kéo mép dưới lên trên tạo cánh hoa đào (Petal fold).',
-          'Lật mặt sau và lặp lại thao tác gấp mép và kéo tạo cánh hoa đào tương tự.',
-          'Gấp mép hai cánh bên hông vào đường trục giữa cho hông thon nhỏ lại (ở cả 2 mặt).',
-          'Sử dụng đường gấp ngược trong (Inside reverse fold) để bẻ hướng hai chân dưới lên trên làm cổ và đuôi hạc.',
-          'Gập ngược đầu cổ xuống làm mỏ hạc, bẻ nhẹ cánh hạc sang hai bên và thổi nhẹ vào đáy hạc để hoàn thành.'
-        ],
-        'stepImages': [
-          'assets/images/crane_step1.png',
-          'assets/images/crane_step2.png',
-          'assets/images/crane_step3.png',
-          'assets/images/crane_step4.png',
-          'assets/images/crane_step5.png',
-          'assets/images/crane_step6.png',
-          'assets/images/crane_step7.png',
-          'assets/images/crane_step8.png',
-          'assets/images/crane_step9.png',
-        ],
-      },
-      {
-        'id': 2,
-        'title': 'Thuyền Giấy',
-        'difficulty': 1,
-        'category': 'Đồ vật',
-        'steps_count': 3,
-        'time_estimate': '3 phút',
-        'description': 'Mẫu gấp thuyền giấy cổ điển cực kỳ đơn giản và quen thuộc với tuổi thơ.',
-        'image_path': 'assets/images/boat_complete.png',
-        'steps': [
-          'Gấp đôi tờ giấy hình chữ nhật theo chiều dọc.',
-          'Gập hai góc phía trên vào giữa tạo thành hình tam giác cân, phần giấy thừa phía dưới gập ngược lên hai phía.',
-          'Mở rộng lòng hình tam giác thành hình vuông, sau đó kéo hai góc đối diện ra ngoài để tạo hình thuyền.',
-        ],
-        'stepImages': [
-          'assets/images/boat_step1.png',
-          'assets/images/boat_step2.png',
-          'assets/images/boat_step3.png',
-        ],
-      },
-      {
-        'id': 3,
-        'title': 'Khủng Long T-Rex',
-        'difficulty': 4,
-        'category': 'Động vật',
-        'steps_count': 6,
-        'time_estimate': '15 phút',
-        'description': 'Mẫu gấp khủng long bạo chúa T-Rex ấn tượng dành cho những người thích thử thách nâng cao.',
-        'image_path': 'assets/images/trex_complete.png',
-        'steps': [
-          'Tạo nếp gấp chéo và nếp gấp ngang dọc làm cơ sở.',
-          'Gấp xéo tạo mỏ neo và phần đầu của khủng long.',
-          'Tạo nếp gấp tạo hai chân sau vững chãi.',
-          'Gập thu hẹp đuôi và tạo hình gai lưng.',
-          'Uốn cong phần cổ và đầu hướng xuống.',
-          'Tạo chi tiết 2 chi trước nhỏ và hoàn thiện thế đứng.',
-        ],
-        'stepImages': [
-          'assets/images/trex_step1.png',
-          'assets/images/trex_step2.png',
-          'assets/images/trex_step3.png',
-          'assets/images/trex_step4.png',
-          'assets/images/trex_step5.png',
-          'assets/images/trex_step6.png',
-        ],
-      },
-      {
-        'id': 4,
-        'title': 'Hoa Hồng Tình Yêu',
-        'difficulty': 3,
-        'category': 'Hoa',
-        'steps_count': 5,
-        'time_estimate': '10 phút',
-        'description': 'Mẫu gấp bông hoa hồng nở rộ quyến rũ, thích hợp để làm quà tặng hoặc trang trí.',
-        'image_path': 'assets/images/rose_complete.png',
-        'steps': [
-          'Tạo nếp gấp chia tờ giấy thành lưới 4x4.',
-          'Gập các mép giấy vào tâm để tạo khối 3D.',
-          'Cuộn xoắn tâm giấy để tạo các lớp cánh hoa đan xen.',
-          'Gập các góc ngoài xuống dưới làm đài hoa.',
-          'Bẻ cong nhẹ các mép cánh hoa ra ngoài để hoa trông nở tự nhiên.',
-        ],
-        'stepImages': [
-          'assets/images/rose_step1.png',
-          'assets/images/rose_step2.png',
-          'assets/images/rose_step3.png',
-          'assets/images/rose_step4.png',
-          'assets/images/rose_step5.png',
-        ],
-      },
-      {
-        'id': 5,
-        'title': 'Cáo Giấy Cute',
-        'difficulty': 1,
-        'category': 'Động vật',
-        'steps_count': 4,
-        'time_estimate': '3 phút',
-        'description': 'Mẫu gấp đầu con cáo siêu dễ thương và cực kỳ nhanh chóng, rất phù hợp cho các bé tập gấp.',
-        'image_path': 'assets/images/fox_complete.png',
-        'steps': [
-          'Gấp đôi tờ giấy hình vuông theo đường chéo để tạo hình tam giác.',
-          'Gập tiếp đôi hình tam giác rồi mở ra lấy nếp gấp ở giữa.',
-          'Gập hai góc nhọn bên hông xuống dưới hướng về góc nhọn đỉnh dưới.',
-          'Lật mặt sau, bẻ nhẹ phần tai cáo và phần mũi cáo ra để hoàn thành đầu cáo.',
-        ],
-        'stepImages': [
-          'assets/images/fox_step1.png',
-          'assets/images/fox_step2.png',
-          'assets/images/fox_step3.png',
-          'assets/images/fox_step4.png',
-        ],
-      },
-      {
-        'id': 6,
-        'title': 'Máy Bay Phản Lực',
-        'difficulty': 2,
-        'category': 'Đồ vật',
-        'steps_count': 4,
-        'time_estimate': '4 phút',
-        'description': 'Phiên bản máy bay giấy phản lực có cấu trúc khí động học tốt, có thể bay rất xa.',
-        'image_path': 'assets/images/jet_complete.png',
-        'steps': [
-          'Gấp đôi tờ giấy A4 theo chiều dọc để lấy nếp gấp ở giữa.',
-          'Gấp hai mép góc trên vào giữa tạo thành hình tam giác nhọn đỉnh.',
-          'Tiếp tục gấp hai mép bên vào đường giữa để mũi máy bay nhọn hơn.',
-          'Gập đôi máy bay dọc theo đường nếp giữa, bẻ ngược hai bên cánh xuống tạo cánh phản lực phẳng.',
-        ],
-        'stepImages': [
-          'assets/images/jet_step1.png',
-          'assets/images/jet_step2.png',
-          'assets/images/jet_step3.png',
-          'assets/images/jet_step4.png',
-        ],
-      },
-      {
-        'id': 7,
-        'title': 'Hoa Tulip Mùa Xuân',
-        'difficulty': 2,
-        'category': 'Hoa',
-        'steps_count': 5,
-        'time_estimate': '5 phút',
-        'description': 'Bông hoa tulip mùa xuân nở rộ duyên dáng với các bước gấp đơn giản tạo khối 3D.',
-        'image_path': 'assets/images/tulip_complete.png',
-        'steps': [
-          'Gấp đôi tờ giấy hình vuông theo đường chéo tạo thành hình tam giác.',
-          'Gập góc dưới bên phải xéo lên trên về phía bên phải của đỉnh.',
-          'Gập góc dưới bên trái xéo lên trên về phía bên trái của đỉnh.',
-          'Gập nhẹ phần góc đáy nhọn bên dưới ra phía sau để bông hoa đứng vững.',
-          'Ghép thêm một tờ giấy màu xanh gấp cuốn làm cành và lá để hoàn chỉnh hoa tulip.',
-        ],
-        'stepImages': [
-          'assets/images/tulip_step1.png',
-          'assets/images/tulip_step2.png',
-          'assets/images/tulip_step3.png',
-          'assets/images/tulip_step4.png',
-          'assets/images/tulip_step5.png',
-        ],
-      },
-      {
-        'id': 8,
-        'title': 'Khủng Long Cổ Dài',
-        'difficulty': 5,
-        'category': 'Động vật',
-        'steps_count': 6,
-        'time_estimate': '20 phút',
-        'description': 'Thử thách gấp giấy siêu khó mô phỏng loài khủng long ăn cỏ cổ dài khổng lồ Brachiosaurus.',
-        'image_path': 'assets/images/brachio_complete.png',
-        'steps': [
-          'Bắt đầu với nếp gấp cơ bản hình vuông (Square Base).',
-          'Gấp mép tạo cánh hoa đào (Petal fold) tạo các chi dài giống hạc giấy.',
-          'Thực hiện gấp ngược trong (Inside reverse fold) tạo cổ dài hướng lên trên.',
-          'Gấp ngược một góc nhỏ ở đỉnh đầu tạo mỏ và đầu khủng long cổ dài.',
-          'Bẻ đôi phần thân sau xuống tạo đuôi dài thon gọn.',
-          'Tạo các nếp gấp chéo nhỏ ở dưới bụng để định hình 4 chân vững chắc.',
-        ],
-        'stepImages': [
-          'assets/images/brachio_step1.png',
-          'assets/images/brachio_step2.png',
-          'assets/images/brachio_step3.png',
-          'assets/images/brachio_step4.png',
-          'assets/images/brachio_step5.png',
-          'assets/images/brachio_step6.png',
-        ],
-      }
-    ];
+  Future<Database> _initDB(String filePath) async {
+    final dbPath = await getDatabasesPath();
+    final path = join(dbPath, filePath);
 
-    for (var model in initialModels) {
-      final id = model['id'] as int;
-      if (!_modelsBox.containsKey(id)) {
-        await _modelsBox.put(id, model);
+    return await openDatabase(
+      path,
+      version: 1,
+      onCreate: _createDB,
+    );
+  }
+
+  Future<void> _createDB(Database db, int version) async {
+    await db.execute('''
+      CREATE TABLE users (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        email TEXT UNIQUE NOT NULL,
+        password TEXT NOT NULL,
+        avatar TEXT
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE origami_models (
+        id INTEGER PRIMARY KEY,
+        title TEXT NOT NULL,
+        category TEXT NOT NULL,
+        difficulty INTEGER NOT NULL,
+        steps_count INTEGER NOT NULL,
+        time_estimate TEXT NOT NULL,
+        description TEXT NOT NULL,
+        image_path TEXT NOT NULL,
+        steps TEXT NOT NULL,
+        stepImages TEXT NOT NULL,
+        stepDiagrams TEXT NOT NULL,
+        videoTutorial TEXT
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE user_progress (
+        user_id INTEGER NOT NULL,
+        model_id INTEGER NOT NULL,
+        current_step INTEGER NOT NULL,
+        is_completed INTEGER NOT NULL,
+        updated_at TEXT NOT NULL,
+        PRIMARY KEY (user_id, model_id)
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE favorites (
+        user_id INTEGER NOT NULL,
+        model_id INTEGER NOT NULL,
+        PRIMARY KEY (user_id, model_id)
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE session (
+        key TEXT PRIMARY KEY,
+        value TEXT
+      )
+    ''');
+  }
+
+  // Khởi tạo SQLite DB và seed dữ liệu nếu rỗng
+  Future<void> init() async {
+    final db = await database;
+    await _seedInitialData(db);
+  }
+
+  Future<void> _seedInitialData(Database db) async {
+    final countResult = Sqflite.firstIntValue(
+      await db.rawQuery('SELECT COUNT(*) FROM origami_models'),
+    );
+
+    // Nếu số lượng mẫu trong CSDL khác số lượng mẫu trong MockData, xóa đi và seed lại
+    if (countResult != MockData.models.length) {
+      await db.delete('origami_models');
+      for (var model in MockData.models) {
+        await db.insert('origami_models', {
+          'id': model.id,
+          'title': model.title,
+          'category': model.category,
+          'difficulty': model.difficulty,
+          'steps_count': model.stepsCount,
+          'time_estimate': model.timeEstimate,
+          'description': model.description,
+          'image_path': model.imagePath,
+          'steps': jsonEncode(model.steps),
+          'stepImages': jsonEncode(model.stepImages),
+          'stepDiagrams': jsonEncode(model.stepDiagrams),
+          'videoTutorial': model.videoTutorial,
+        });
       }
+    }
+
+    // Tự động thêm tài khoản mặc định để kiểm thử không bao giờ lo bị mất
+    final userCount = Sqflite.firstIntValue(
+      await db.rawQuery('SELECT COUNT(*) FROM users WHERE email = ?', ['user@gmail.com']),
+    );
+    if (userCount == 0) {
+      await db.insert('users', {
+        'name': 'Origami Master',
+        'email': 'user@gmail.com',
+        'password': 'password123',
+      });
     }
   }
 
@@ -238,87 +131,121 @@ class DatabaseHelper {
 
   // Lấy User hiện tại đang đăng nhập
   Future<Map<String, dynamic>?> getCurrentUser() async {
-    final user = _sessionBox.get('currentUser');
-    if (user != null) {
-      return Map<String, dynamic>.from(user);
+    final db = await database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      'session',
+      where: 'key = ?',
+      whereArgs: ['currentUser'],
+    );
+    if (maps.isNotEmpty) {
+      return jsonDecode(maps.first['value'] as String) as Map<String, dynamic>;
     }
     return null;
   }
 
   // Lưu User đăng nhập hiện tại
   Future<void> setCurrentUser(Map<String, dynamic> user) async {
-    await _sessionBox.put('currentUser', user);
+    final db = await database;
+    await db.insert(
+      'session',
+      {
+        'key': 'currentUser',
+        'value': jsonEncode(user),
+      },
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
   }
 
   // Đăng xuất
   Future<void> logoutUser() async {
-    await _sessionBox.delete('currentUser');
+    final db = await database;
+    await db.delete(
+      'session',
+      where: 'key = ?',
+      whereArgs: ['currentUser'],
+    );
   }
 
   // Đăng ký tài khoản
   Future<int> registerUser(String name, String email, String password) async {
+    final db = await database;
     // Check if user already exists
-    if (_usersBox.containsKey(email)) {
+    final List<Map<String, dynamic>> existing = await db.query(
+      'users',
+      where: 'email = ?',
+      whereArgs: [email],
+    );
+    if (existing.isNotEmpty) {
       throw Exception('Email đã được đăng ký!');
     }
 
-    // Auto increment logic
-    final int nextId = _usersBox.length + 1;
-    final user = {
-      'id': nextId,
+    final id = await db.insert('users', {
       'name': name,
       'email': email,
       'password': password,
-    };
-    await _usersBox.put(email, user);
-    return nextId;
+    });
+    return id;
   }
 
   // Đăng nhập
   Future<Map<String, dynamic>?> loginUser(String email, String password) async {
-    final user = _usersBox.get(email);
-    if (user != null) {
-      final userMap = Map<String, dynamic>.from(user);
-      if (userMap['password'] == password) {
-        await setCurrentUser(userMap);
-        return userMap;
-      }
+    final db = await database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      'users',
+      where: 'email = ? AND password = ?',
+      whereArgs: [email, password],
+    );
+    if (maps.isNotEmpty) {
+      final userMap = Map<String, dynamic>.from(maps.first);
+      await setCurrentUser(userMap);
+      return userMap;
     }
     return null;
   }
 
   // Cập nhật họ tên của User
   Future<void> updateUserName(String email, String newName) async {
-    final user = _usersBox.get(email);
-    if (user != null) {
-      final userMap = Map<String, dynamic>.from(user);
-      userMap['name'] = newName;
-      await _usersBox.put(email, userMap);
-      await setCurrentUser(userMap); // Cập nhật session hiện tại luôn
+    final db = await database;
+    await db.update(
+      'users',
+      {'name': newName},
+      where: 'email = ?',
+      whereArgs: [email],
+    );
+    final currentUser = await getCurrentUser();
+    if (currentUser != null && currentUser['email'] == email) {
+      currentUser['name'] = newName;
+      await setCurrentUser(currentUser);
     }
   }
 
   // Cập nhật ảnh đại diện của User
   Future<void> updateUserAvatar(String email, String base64Image) async {
-    final user = _usersBox.get(email);
-    if (user != null) {
-      final userMap = Map<String, dynamic>.from(user);
-      userMap['avatar'] = base64Image;
-      await _usersBox.put(email, userMap);
-      await setCurrentUser(userMap); // Cập nhật session hiện tại luôn
+    final db = await database;
+    await db.update(
+      'users',
+      {'avatar': base64Image},
+      where: 'email = ?',
+      whereArgs: [email],
+    );
+    final currentUser = await getCurrentUser();
+    if (currentUser != null && currentUser['email'] == email) {
+      currentUser['avatar'] = base64Image;
+      await setCurrentUser(currentUser);
     }
   }
 
   // Lấy toàn bộ danh sách mẫu Origami
   Future<List<Map<String, dynamic>>> getOrigamiModels() async {
-    final List<Map<String, dynamic>> models = [];
-    for (var key in _modelsBox.keys) {
-      final model = _modelsBox.get(key);
-      if (model != null) {
-        models.add(Map<String, dynamic>.from(model));
-      }
-    }
-    return models;
+    final db = await database;
+    final List<Map<String, dynamic>> maps = await db.query('origami_models');
+    return maps.map((m) {
+      final map = Map<String, dynamic>.from(m);
+      map['steps'] = jsonDecode(map['steps'] as String);
+      map['stepImages'] = jsonDecode(map['stepImages'] as String);
+      map['stepDiagrams'] = jsonDecode(map['stepDiagrams'] as String);
+      return map;
+    }).toList();
   }
 
   // Lấy danh sách OrigamiModel ánh xạ dữ liệu tiến độ và yêu thích cho User cụ thể
@@ -343,6 +270,8 @@ class DatabaseHelper {
         imagePath: m['image_path'] as String,
         steps: List<String>.from(m['steps'] ?? []),
         stepImages: List<String>.from(m['stepImages'] ?? []),
+        stepDiagrams: List<String>.from(m['stepDiagrams'] ?? []),
+        videoTutorial: m['videoTutorial'] as String?,
         isFavorite: fav,
         currentStep: currentStep,
         isCompleted: isCompleted,
@@ -355,12 +284,17 @@ class DatabaseHelper {
 
   // Lấy danh sách các bước gấp của một mẫu cụ thể
   Future<List<Map<String, dynamic>>> getStepsForModel(int modelId) async {
-    final model = _modelsBox.get(modelId);
-    if (model == null) return [];
+    final db = await database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      'origami_models',
+      where: 'id = ?',
+      whereArgs: [modelId],
+    );
+    if (maps.isEmpty) return [];
 
-    final modelMap = Map<String, dynamic>.from(model);
-    final List<dynamic> stepsList = modelMap['steps'];
-    final List<dynamic> stepImagesList = modelMap['stepImages'];
+    final modelMap = maps.first;
+    final List<dynamic> stepsList = jsonDecode(modelMap['steps'] as String);
+    final List<dynamic> stepImagesList = jsonDecode(modelMap['stepImages'] as String);
     final List<Map<String, dynamic>> stepsResult = [];
 
     for (int i = 0; i < stepsList.length; i++) {
@@ -379,50 +313,58 @@ class DatabaseHelper {
 
   // Lấy tiến độ gấp dở
   Future<Map<String, dynamic>?> getProgress(int userId, int modelId) async {
-    final progressKey = '${userId}_${modelId}';
-    final progress = _progressBox.get(progressKey);
-    if (progress != null) {
-      return Map<String, dynamic>.from(progress);
+    final db = await database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      'user_progress',
+      where: 'user_id = ? AND model_id = ?',
+      whereArgs: [userId, modelId],
+    );
+    if (maps.isNotEmpty) {
+      return Map<String, dynamic>.from(maps.first);
     }
     return null;
   }
 
   // Cập nhật hoặc ghi nhận tiến độ mới
   Future<void> updateProgress(int userId, int modelId, int currentStep, int isCompleted) async {
-    final progressKey = '${userId}_${modelId}';
-    final data = {
-      'user_id': userId,
-      'model_id': modelId,
-      'current_step': currentStep,
-      'is_completed': isCompleted,
-      'updated_at': DateTime.now().toIso8601String(),
-    };
-    await _progressBox.put(progressKey, data);
+    final db = await database;
+    await db.insert(
+      'user_progress',
+      {
+        'user_id': userId,
+        'model_id': modelId,
+        'current_step': currentStep,
+        'is_completed': isCompleted,
+        'updated_at': DateTime.now().toIso8601String(),
+      },
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
   }
 
   // Lấy danh sách mẫu gấp dở để hiện ở Home Dashboard
   Future<List<Map<String, dynamic>>> getIncompleteProgress(int userId) async {
+    final db = await database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      'user_progress',
+      where: 'user_id = ? AND is_completed = 0',
+      whereArgs: [userId],
+    );
     final List<Map<String, dynamic>> results = [];
-    for (var key in _progressBox.keys) {
-      if (key.toString().startsWith('${userId}_')) {
-        final progress = _progressBox.get(key);
-        if (progress != null) {
-          final progressMap = Map<String, dynamic>.from(progress);
-          if (progressMap['is_completed'] == 0) {
-            // Lấy thông tin model tương ứng
-            final modelId = progressMap['model_id'];
-            final model = _modelsBox.get(modelId);
-            if (model != null) {
-              final modelMap = Map<String, dynamic>.from(model);
-              results.add({
-                ...progressMap,
-                'title': modelMap['title'],
-                'image_path': modelMap['image_path'],
-                'steps_count': modelMap['steps_count'],
-              });
-            }
-          }
-        }
+    for (var progressMap in maps) {
+      final modelId = progressMap['model_id'] as int;
+      final List<Map<String, dynamic>> modelMaps = await db.query(
+        'origami_models',
+        where: 'id = ?',
+        whereArgs: [modelId],
+      );
+      if (modelMaps.isNotEmpty) {
+        final modelMap = modelMaps.first;
+        results.add({
+          ...progressMap,
+          'title': modelMap['title'],
+          'image_path': modelMap['image_path'],
+          'steps_count': modelMap['steps_count'],
+        });
       }
     }
     return results;
@@ -430,34 +372,43 @@ class DatabaseHelper {
 
   // Thống kê: Lấy số lượng mẫu đã hoàn thành thành công (Thành quả bản thân)
   Future<int> getCompletedCount(int userId) async {
-    int count = 0;
-    for (var key in _progressBox.keys) {
-      if (key.toString().startsWith('${userId}_')) {
-        final progress = _progressBox.get(key);
-        if (progress != null) {
-          final progressMap = Map<String, dynamic>.from(progress);
-          if (progressMap['is_completed'] == 1) {
-            count++;
-          }
-        }
-      }
-    }
-    return count;
+    final db = await database;
+    final countResult = Sqflite.firstIntValue(await db.rawQuery(
+      'SELECT COUNT(*) FROM user_progress WHERE user_id = ? AND is_completed = 1',
+      [userId],
+    ));
+    return countResult ?? 0;
   }
 
   // --- QUẢN LÝ YÊU THÍCH ---
 
   // Kiểm tra mẫu có yêu thích hay không
   Future<bool> isFavorite(int userId, int modelId) async {
-    final favKey = '${userId}_${modelId}';
-    return _favoritesBox.get(favKey, defaultValue: false) as bool;
+    final db = await database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      'favorites',
+      where: 'user_id = ? AND model_id = ?',
+      whereArgs: [userId, modelId],
+    );
+    return maps.isNotEmpty;
   }
 
   // Đổi trạng thái yêu thích
   Future<void> toggleFavorite(int userId, int modelId) async {
-    final favKey = '${userId}_${modelId}';
-    final currentStatus = _favoritesBox.get(favKey, defaultValue: false) as bool;
-    await _favoritesBox.put(favKey, !currentStatus);
+    final db = await database;
+    final bool exists = await isFavorite(userId, modelId);
+    if (exists) {
+      await db.delete(
+        'favorites',
+        where: 'user_id = ? AND model_id = ?',
+        whereArgs: [userId, modelId],
+      );
+    } else {
+      await db.insert('favorites', {
+        'user_id': userId,
+        'model_id': modelId,
+      });
+    }
   }
 
   // Lấy danh sách các mẫu đã yêu thích

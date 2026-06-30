@@ -3,6 +3,7 @@ import '../mock_data.dart';
 import 'congrats_screen.dart';
 import '../utils/settings_manager.dart';
 import '../utils/database_helper.dart';
+import '../widgets/video_step_player.dart';
 
 class FoldingStepsScreen extends StatefulWidget {
   final OrigamiModel model;
@@ -86,6 +87,12 @@ class _FoldingStepsScreenState extends State<FoldingStepsScreen> {
           ),
         ),
         actions: [
+          if (model.videoTutorial != null)
+            IconButton(
+              icon: const Icon(Icons.play_circle_fill, color: Colors.redAccent),
+              tooltip: SettingsManager.translate('all') == 'All' ? 'Watch Tutorial Video' : 'Xem Video Hướng Dẫn',
+              onPressed: () => _showVideoTutorial(context, model.videoTutorial!, model.title),
+            ),
           TextButton(
             onPressed: _saveAndExit,
             child: Text(
@@ -165,18 +172,94 @@ class _FoldingStepsScreenState extends State<FoldingStepsScreen> {
                     builder: (context) {
                       final hasImage = _currentStepIndex < model.stepImages.length &&
                           model.stepImages[_currentStepIndex].isNotEmpty;
+                      final hasDiagram = model.stepDiagrams.isNotEmpty &&
+                          _currentStepIndex < model.stepDiagrams.length &&
+                          model.stepDiagrams[_currentStepIndex].isNotEmpty;
 
-                      if (hasImage) {
+                      // Widget con hiển thị ảnh chụp hoặc video
+                      Widget buildPhotoOrVideo() {
+                        final imagePath = model.stepImages[_currentStepIndex];
+                        if (imagePath.endsWith('.mp4')) {
+                          return ClipRRect(
+                            borderRadius: BorderRadius.circular(16),
+                            child: VideoStepPlayer(
+                              key: ValueKey(imagePath),
+                              assetPath: imagePath,
+                              autoPlay: true,
+                              looping: true,
+                              startMuted: true,
+                              showControls: true,
+                            ),
+                          );
+                        }
                         return Padding(
-                          padding: const EdgeInsets.all(16.0),
+                          padding: const EdgeInsets.all(12.0),
                           child: Image.asset(
-                            model.stepImages[_currentStepIndex],
+                            imagePath,
                             fit: BoxFit.contain,
                             errorBuilder: (context, error, stackTrace) {
                               return _buildPlaceholderStepImage();
                             },
                           ),
                         );
+                      }
+
+                      // Widget con hiển thị sơ đồ vẽ
+                      Widget buildDiagram() {
+                        return Padding(
+                          padding: const EdgeInsets.all(12.0),
+                          child: Image.asset(
+                            model.stepDiagrams[_currentStepIndex],
+                            fit: BoxFit.contain,
+                            errorBuilder: (context, error, stackTrace) {
+                              return _buildPlaceholderStepImage();
+                            },
+                          ),
+                        );
+                      }
+
+                      if (hasImage && hasDiagram) {
+                        return Padding(
+                          padding: const EdgeInsets.all(16.0),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              // Khung bên trái: Ảnh / Video thực tế
+                              Expanded(
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    color: Theme.of(context).brightness == Brightness.dark
+                                        ? const Color(0xFF1E293B)
+                                        : Colors.grey.shade50,
+                                    borderRadius: BorderRadius.circular(16),
+                                  ),
+                                  clipBehavior: Clip.antiAlias,
+                                  child: buildPhotoOrVideo(),
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                              // Khung bên phải: Sơ đồ vẽ (nền trắng tinh tế giống hướng dẫn gốc)
+                              Expanded(
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(16),
+                                    border: Border.all(
+                                      color: Colors.grey.withOpacity(0.15),
+                                      width: 1,
+                                    ),
+                                  ),
+                                  clipBehavior: Clip.antiAlias,
+                                  child: buildDiagram(),
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      } else if (hasImage) {
+                        return buildPhotoOrVideo();
+                      } else if (hasDiagram) {
+                        return buildDiagram();
                       } else {
                         return _buildPlaceholderStepImage();
                       }
@@ -282,6 +365,106 @@ class _FoldingStepsScreenState extends State<FoldingStepsScreen> {
           ),
         ),
       ),
+    );
+  }
+
+  void _showVideoTutorial(BuildContext context, String videoPath, String title) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      enableDrag: false, // Vô hiệu hóa kéo để tránh xung đột cử chỉ tua video
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return Container(
+          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+          decoration: BoxDecoration(
+            color: const Color(0xFF3B4252), // Beautiful dark slate color matching the screenshot
+            borderRadius: BorderRadius.circular(28),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.35),
+                blurRadius: 20,
+                offset: const Offset(0, 10),
+              )
+            ],
+          ),
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Play Icon in circle at the top center
+              Center(
+                child: Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.12),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.play_arrow,
+                    color: Colors.white,
+                    size: 24,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              // Playful Title Text
+              Center(
+                child: Text(
+                  SettingsManager.translate('all') == 'All'
+                      ? 'Watch the $title Video Tutorial'
+                      : 'Xem Video Hướng Dẫn $title',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                    fontStyle: FontStyle.italic,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+              // Video Player Frame
+              AspectRatio(
+                aspectRatio: 16 / 9,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(16),
+                  child: Container(
+                    color: Colors.black,
+                    child: VideoStepPlayer(
+                      assetPath: videoPath,
+                      startMuted: false,
+                      showControls: true,
+                      looping: false,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              // Close Button
+              Center(
+                child: TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                  ),
+                  child: Text(
+                    SettingsManager.translate('all') == 'All' ? 'Close' : 'Đóng',
+                    style: const TextStyle(
+                      color: Colors.white70,
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 

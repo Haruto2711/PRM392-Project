@@ -3,6 +3,8 @@ import '../mock_data.dart';
 import 'folding_steps_screen.dart';
 import '../utils/settings_manager.dart';
 import '../utils/database_helper.dart';
+import '../widgets/video_step_player.dart';
+import '../widgets/origami_cover_image.dart';
 
 class OrigamiDetailScreen extends StatefulWidget {
   final OrigamiModel model;
@@ -38,18 +40,9 @@ class _OrigamiDetailScreenState extends State<OrigamiDetailScreen> {
                         : const Color(0xFFEEF2F6),
                     child: Hero(
                       tag: 'model-${model.id}',
-                      child: Image.asset(
-                        model.imagePath,
+                      child: OrigamiCoverImage(
+                        imagePath: model.imagePath,
                         fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) {
-                          return const Center(
-                            child: Icon(
-                              Icons.menu_book,
-                              size: 100,
-                              color: Colors.indigo,
-                            ),
-                          );
-                        },
                       ),
                     ),
                   ),
@@ -186,46 +179,200 @@ class _OrigamiDetailScreenState extends State<OrigamiDetailScreen> {
               left: 20,
               right: 20,
               bottom: 20,
-              child: Row(
-                children: [
-                  Expanded(
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.indigo,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        elevation: 4,
-                        shadowColor: Colors.indigo.withOpacity(0.3),
-                      ),
-                      onPressed: () async {
-                        await Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => FoldingStepsScreen(model: model),
+              child: Center(
+                child: Container(
+                  constraints: const BoxConstraints(maxWidth: 480), // Giới hạn chiều rộng tối đa để cân đối trên Web/Tablet
+                  child: Row(
+                    children: [
+                      if (model.videoTutorial != null) ...[
+                        Container(
+                          width: 54,
+                          height: 54,
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).brightness == Brightness.dark
+                                ? Colors.red.withOpacity(0.15)
+                                : const Color(0xFFFEF2F2),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: Theme.of(context).brightness == Brightness.dark
+                                  ? Colors.red.withOpacity(0.3)
+                                  : const Color(0xFFFEE2E2),
+                              width: 1.5,
+                            ),
                           ),
-                        );
-                        setState(() {}); // Làm mới giao diện khi gấp xong hoặc lưu dở
-                      },
-                      child: Text(
-                        model.currentStep > 0
-                            ? SettingsManager.translate('continue_folding')
-                            : SettingsManager.translate('start_folding'),
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
+                          child: Material(
+                            color: Colors.transparent,
+                            child: InkWell(
+                              borderRadius: BorderRadius.circular(16),
+                              onTap: () => _showVideoTutorial(context, model.videoTutorial!, model.title),
+                              child: const Center(
+                                child: Icon(
+                                  Icons.play_circle_fill,
+                                  color: Color(0xFFEF4444),
+                                  size: 28,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                      ],
+                      Expanded(
+                        child: Container(
+                          height: 54,
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              colors: [Color(0xFF4F46E5), Color(0xFF6366F1)],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                            borderRadius: BorderRadius.circular(16),
+                            boxShadow: [
+                              BoxShadow(
+                                color: const Color(0xFF4F46E5).withOpacity(0.35),
+                                blurRadius: 12,
+                                offset: const Offset(0, 4),
+                              )
+                            ],
+                          ),
+                          child: Material(
+                            color: Colors.transparent,
+                            child: InkWell(
+                              borderRadius: BorderRadius.circular(16),
+                              onTap: () async {
+                                await Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => FoldingStepsScreen(model: model),
+                                  ),
+                                );
+                                setState(() {}); // Làm mới giao diện khi gấp xong hoặc lưu dở
+                              },
+                              child: Center(
+                                child: Text(
+                                  model.currentStep > 0
+                                      ? SettingsManager.translate('continue_folding')
+                                      : SettingsManager.translate('start_folding'),
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    letterSpacing: 0.5,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
                         ),
                       ),
-                    ),
+                    ],
                   ),
-                ],
+                ),
               ),
             ),
           ],
         ),
       ),
+    );
+  }
+
+  void _showVideoTutorial(BuildContext context, String videoPath, String title) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      enableDrag: false, // Vô hiệu hóa kéo để tránh xung đột cử chỉ tua video
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return Container(
+          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+          decoration: BoxDecoration(
+            color: const Color(0xFF3B4252), // Beautiful dark slate color matching the screenshot
+            borderRadius: BorderRadius.circular(28),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.35),
+                blurRadius: 20,
+                offset: const Offset(0, 10),
+              )
+            ],
+          ),
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Play Icon in circle at the top center
+              Center(
+                child: Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.12),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.play_arrow,
+                    color: Colors.white,
+                    size: 24,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              // Playful Title Text
+              Center(
+                child: Text(
+                  SettingsManager.translate('all') == 'All'
+                      ? 'Watch the $title Video Tutorial'
+                      : 'Xem Video Hướng Dẫn $title',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                    fontStyle: FontStyle.italic,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+              // Video Player Frame
+              AspectRatio(
+                aspectRatio: 16 / 9,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(16),
+                  child: Container(
+                    color: Colors.black,
+                    child: VideoStepPlayer(
+                      assetPath: videoPath,
+                      startMuted: false,
+                      showControls: true,
+                      looping: false,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              // Close Button
+              Center(
+                child: TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                  ),
+                  child: Text(
+                    SettingsManager.translate('all') == 'All' ? 'Close' : 'Đóng',
+                    style: const TextStyle(
+                      color: Colors.white70,
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 
