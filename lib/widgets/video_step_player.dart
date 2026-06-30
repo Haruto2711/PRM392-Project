@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
+import 'package:flutter/services.dart';
 import '../utils/video_helper.dart';
 
 
@@ -211,6 +212,52 @@ class _VideoStepPlayerState extends State<VideoStepPlayer> {
       _currentSpeed = _speeds[nextIndex];
       _controller.setPlaybackSpeed(_currentSpeed);
     });
+  }
+
+  Future<void> _toggleFullscreen() async {
+    _resetHideTimer();
+    
+    final wasPlaying = _controller.value.isPlaying;
+    
+    // Set landscape orientation
+    await SystemChrome.setPreferredOrientations([
+      DeviceOrientation.landscapeLeft,
+      DeviceOrientation.landscapeRight,
+    ]);
+    await SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+
+    if (mounted) {
+      await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => FullscreenVideoPlayer(
+            controller: _controller,
+            onClose: () async {
+              await SystemChrome.setPreferredOrientations([
+                DeviceOrientation.portraitUp,
+              ]);
+              await SystemChrome.setEnabledSystemUIMode(
+                SystemUiMode.manual,
+                overlays: SystemUiOverlay.values,
+              );
+            },
+          ),
+        ),
+      );
+    }
+
+    // Reset preferred orientations
+    await SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+    ]);
+    await SystemChrome.setEnabledSystemUIMode(
+      SystemUiMode.manual,
+      overlays: SystemUiOverlay.values,
+    );
+    
+    if (wasPlaying && !_controller.value.isPlaying) {
+      _controller.play();
+    }
   }
 
   String _formatDuration(Duration duration) {
@@ -452,6 +499,16 @@ class _VideoStepPlayerState extends State<VideoStepPlayer> {
                                           size: 20,
                                         ),
                                       ),
+                                      const SizedBox(width: 12),
+                                      // Nút Fullscreen
+                                      GestureDetector(
+                                        onTap: _toggleFullscreen,
+                                        child: const Icon(
+                                          Icons.fullscreen,
+                                          color: Colors.white,
+                                          size: 22,
+                                        ),
+                                      ),
                                     ],
                                   )
                                 ],
@@ -467,6 +524,335 @@ class _VideoStepPlayerState extends State<VideoStepPlayer> {
             ),
           ),
       ],
+    );
+  }
+}
+
+class FullscreenVideoPlayer extends StatefulWidget {
+  final VideoPlayerController controller;
+  final VoidCallback onClose;
+
+  const FullscreenVideoPlayer({
+    Key? key,
+    required this.controller,
+    required this.onClose,
+  }) : super(key: key);
+
+  @override
+  _FullscreenVideoPlayerState createState() => _FullscreenVideoPlayerState();
+}
+
+class _FullscreenVideoPlayerState extends State<FullscreenVideoPlayer> {
+  bool _controlsVisible = true;
+  Timer? _hideTimer;
+  bool _isDragging = false;
+  double? _dragValue;
+  double _currentSpeed = 1.0;
+  bool _isMuted = false;
+  final List<double> _speeds = [0.5, 0.75, 1.0, 1.25, 1.5, 2.0];
+
+  @override
+  void initState() {
+    super.initState();
+    _currentSpeed = widget.controller.value.playbackSpeed;
+    _isMuted = widget.controller.value.volume == 0.0;
+    widget.controller.addListener(_onControllerUpdate);
+    _startHideTimer();
+  }
+
+  @override
+  void dispose() {
+    widget.controller.removeListener(_onControllerUpdate);
+    _hideTimer?.cancel();
+    super.dispose();
+  }
+
+  void _onControllerUpdate() {
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
+  void _startHideTimer() {
+    _hideTimer?.cancel();
+    _hideTimer = Timer(const Duration(seconds: 3), () {
+      if (mounted) {
+        setState(() {
+          _controlsVisible = false;
+        });
+      }
+    });
+  }
+
+  void _resetHideTimer() {
+    if (mounted) {
+      setState(() {
+        _controlsVisible = true;
+      });
+      _startHideTimer();
+    }
+  }
+
+  void _togglePlay() {
+    _resetHideTimer();
+    setState(() {
+      if (widget.controller.value.isPlaying) {
+        widget.controller.pause();
+      } else {
+        widget.controller.play();
+      }
+    });
+  }
+
+  void _seekForward() {
+    _resetHideTimer();
+    final currentPosition = widget.controller.value.position;
+    final totalDuration = widget.controller.value.duration;
+    final newPosition = currentPosition + const Duration(seconds: 10);
+    widget.controller.seekTo(newPosition > totalDuration ? totalDuration : newPosition);
+  }
+
+  void _seekBackward() {
+    _resetHideTimer();
+    final currentPosition = widget.controller.value.position;
+    final newPosition = currentPosition - const Duration(seconds: 10);
+    widget.controller.seekTo(newPosition < Duration.zero ? Duration.zero : newPosition);
+  }
+
+  void _toggleMute() {
+    _resetHideTimer();
+    setState(() {
+      _isMuted = !_isMuted;
+      widget.controller.setVolume(_isMuted ? 0.0 : 1.0);
+    });
+  }
+
+  void _cycleSpeed() {
+    _resetHideTimer();
+    final currentIndex = _speeds.indexOf(_currentSpeed);
+    final nextIndex = (currentIndex + 1) % _speeds.length;
+    setState(() {
+      _currentSpeed = _speeds[nextIndex];
+      widget.controller.setPlaybackSpeed(_currentSpeed);
+    });
+  }
+
+  String _formatDuration(Duration duration) {
+    String twoDigits(int n) => n.toString().padLeft(2, '0');
+    final minutes = duration.inMinutes.remainder(60);
+    final seconds = duration.inSeconds.remainder(60);
+    return "$minutes:${twoDigits(seconds)}";
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final durationText = "${_formatDuration(widget.controller.value.position)} / ${_formatDuration(widget.controller.value.duration)}";
+
+    return Scaffold(
+      backgroundColor: Colors.black,
+      body: Stack(
+        alignment: Alignment.center,
+        children: [
+          // 1. Fullscreen video player
+          GestureDetector(
+            onTap: () {
+              if (_controlsVisible) {
+                setState(() {
+                  _controlsVisible = false;
+                });
+              } else {
+                _resetHideTimer();
+              }
+            },
+            child: Center(
+              child: AspectRatio(
+                aspectRatio: widget.controller.value.aspectRatio,
+                child: VideoPlayer(widget.controller),
+              ),
+            ),
+          ),
+
+          // 2. Play/Pause overlay
+          IgnorePointer(
+            ignoring: !_controlsVisible,
+            child: AnimatedOpacity(
+              opacity: _controlsVisible ? 1.0 : 0.0,
+              duration: const Duration(milliseconds: 300),
+              child: Container(
+                color: Colors.black26,
+                child: Stack(
+                  children: [
+                    // Center controls
+                    Center(
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.replay_10, size: 48, color: Colors.white),
+                            onPressed: _seekBackward,
+                          ),
+                          IconButton(
+                            icon: Icon(
+                              widget.controller.value.isPlaying
+                                  ? Icons.pause_circle_filled
+                                  : Icons.play_circle_filled,
+                              size: 72,
+                              color: Colors.white,
+                            ),
+                            onPressed: _togglePlay,
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.forward_10, size: 48, color: Colors.white),
+                            onPressed: _seekForward,
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    // Exit fullscreen button (top-right)
+                    Positioned(
+                      top: 24,
+                      right: 24,
+                      child: IconButton(
+                        icon: const Icon(Icons.fullscreen_exit, size: 36, color: Colors.white),
+                        onPressed: () {
+                          widget.onClose();
+                          Navigator.pop(context);
+                        },
+                      ),
+                    ),
+
+                    // Bottom controls (progress bar, time, speed, volume)
+                    Positioned(
+                      bottom: 0,
+                      left: 0,
+                      right: 0,
+                      child: Container(
+                        padding: const EdgeInsets.only(left: 24, right: 24, bottom: 20, top: 10),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [Colors.transparent, Colors.black.withOpacity(0.8)],
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                          ),
+                        ),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            // Progress bar
+                            _buildProgressBar(),
+                            const SizedBox(height: 8),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  durationText,
+                                  style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w500),
+                                ),
+                                Row(
+                                  children: [
+                                    GestureDetector(
+                                      onTap: _cycleSpeed,
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                        decoration: BoxDecoration(
+                                          color: Colors.white24,
+                                          borderRadius: BorderRadius.circular(4),
+                                        ),
+                                        child: Text(
+                                          "${_currentSpeed}x",
+                                          style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 20),
+                                    GestureDetector(
+                                      onTap: _toggleMute,
+                                      child: Icon(
+                                        _isMuted ? Icons.volume_off : Icons.volume_up,
+                                        color: Colors.white,
+                                        size: 24,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 20),
+                                    GestureDetector(
+                                      onTap: () {
+                                        widget.onClose();
+                                        Navigator.pop(context);
+                                      },
+                                      child: const Icon(
+                                        Icons.fullscreen_exit,
+                                        color: Colors.white,
+                                        size: 28,
+                                      ),
+                                    ),
+                                  ],
+                                )
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProgressBar() {
+    if (!widget.controller.value.isInitialized) return const SizedBox(height: 24);
+
+    final double totalMs = widget.controller.value.duration.inMilliseconds.toDouble();
+    final double currentMs = widget.controller.value.position.inMilliseconds.toDouble();
+    final double sliderValue = _isDragging ? (_dragValue ?? currentMs) : currentMs;
+
+    return Container(
+      height: 24,
+      alignment: Alignment.center,
+      child: SliderTheme(
+        data: SliderTheme.of(context).copyWith(
+          trackHeight: 6,
+          activeTrackColor: Colors.redAccent,
+          inactiveTrackColor: Colors.white24,
+          thumbColor: Colors.redAccent,
+          thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 8),
+          overlayColor: Colors.red.withOpacity(0.24),
+          trackShape: const RectangularSliderTrackShape(),
+        ),
+        child: Slider(
+          value: sliderValue.clamp(0.0, totalMs > 0 ? totalMs : 1.0),
+          min: 0.0,
+          max: totalMs > 0 ? totalMs : 1.0,
+          onChangeStart: (value) {
+            setState(() {
+              _isDragging = true;
+              _dragValue = value;
+            });
+          },
+          onChanged: (value) {
+            setState(() {
+              _dragValue = value;
+            });
+          },
+          onChangeEnd: (value) async {
+            setState(() {
+              _dragValue = value;
+            });
+            await widget.controller.seekTo(Duration(milliseconds: value.toInt()));
+            if (mounted) {
+              setState(() {
+                _isDragging = false;
+                _dragValue = null;
+              });
+            }
+          },
+        ),
+      ),
     );
   }
 }
