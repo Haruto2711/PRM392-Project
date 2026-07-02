@@ -6,6 +6,7 @@ import 'screens/home_screen.dart';
 import 'utils/settings_manager.dart';
 import 'utils/database_helper.dart';
 import 'screens/change_password_screen.dart';
+import 'screens/forgot_password_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -55,6 +56,7 @@ class OrigamiApp extends StatelessWidget {
             '/login-guide': (context) => const LoginGuideScreen(),
             '/home': (context) => const HomeScreen(),
             '/change-password': (context) => const ChangePasswordScreen(),
+            '/forgot-password': (context) => const ForgotPasswordScreen(),
           },
         );
       },

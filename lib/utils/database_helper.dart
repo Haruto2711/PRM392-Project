@@ -283,6 +283,17 @@ class DatabaseHelper {
     }
   }
 
+  // Kiểm tra email tồn tại trong hệ thống
+  Future<bool> checkEmailExists(String email) async {
+    final db = await database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      'users',
+      where: 'email = ?',
+      whereArgs: [email],
+    );
+    return maps.isNotEmpty;
+  }
+
   // Lấy toàn bộ danh sách mẫu Origami
   Future<List<Map<String, dynamic>>> getOrigamiModels() async {
     final db = await database;

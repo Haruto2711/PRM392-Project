@@ -180,9 +180,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   children: [
                     TextButton(
                       onPressed: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Tính năng Khôi phục mật khẩu đang phát triển')),
-                        );
+                        Navigator.pushNamed(context, '/forgot-password');
                       },
                       child: const Text(
                         'Quên mật khẩu?',
