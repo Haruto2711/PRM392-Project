@@ -22,9 +22,20 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 1,
+      version: 2,
       onCreate: _createDB,
+      onUpgrade: _upgradeDB,
     );
+  }
+
+  Future<void> _upgradeDB(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 2) {
+      try {
+        await db.execute('ALTER TABLE users ADD COLUMN phone TEXT;');
+      } catch (e) {
+        // Column might already exist
+      }
+    }
   }
 
   Future<void> _createDB(Database db, int version) async {
@@ -34,7 +45,8 @@ class DatabaseHelper {
         name TEXT NOT NULL,
         email TEXT UNIQUE NOT NULL,
         password TEXT NOT NULL,
-        avatar TEXT
+        avatar TEXT,
+        phone TEXT
       )
     ''');
 
@@ -219,6 +231,26 @@ class DatabaseHelper {
     }
   }
 
+  // Cập nhật họ tên và số điện thoại của User
+  Future<void> updateUserProfile(String email, String newName, String? newPhone) async {
+    final db = await database;
+    await db.update(
+      'users',
+      {
+        'name': newName,
+        'phone': newPhone,
+      },
+      where: 'email = ?',
+      whereArgs: [email],
+    );
+    final currentUser = await getCurrentUser();
+    if (currentUser != null && currentUser['email'] == email) {
+      currentUser['name'] = newName;
+      currentUser['phone'] = newPhone;
+      await setCurrentUser(currentUser);
+    }
+  }
+
   // Cập nhật ảnh đại diện của User
   Future<void> updateUserAvatar(String email, String base64Image) async {
     final db = await database;
@@ -231,6 +263,22 @@ class DatabaseHelper {
     final currentUser = await getCurrentUser();
     if (currentUser != null && currentUser['email'] == email) {
       currentUser['avatar'] = base64Image;
+      await setCurrentUser(currentUser);
+    }
+  }
+
+  // Cập nhật mật khẩu của User
+  Future<void> updateUserPassword(String email, String newPassword) async {
+    final db = await database;
+    await db.update(
+      'users',
+      {'password': newPassword},
+      where: 'email = ?',
+      whereArgs: [email],
+    );
+    final currentUser = await getCurrentUser();
+    if (currentUser != null && currentUser['email'] == email) {
+      currentUser['password'] = newPassword;
       await setCurrentUser(currentUser);
     }
   }
