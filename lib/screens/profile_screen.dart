@@ -13,6 +13,7 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   final _nameController = TextEditingController();
+  final _phoneController = TextEditingController();
   final _emailController = TextEditingController();
   bool _isEditing = false;
   bool _isLoading = true;
@@ -35,6 +36,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       setState(() {
         _currentUser = user;
         _nameController.text = user['name'] ?? 'Khách';
+        _phoneController.text = user['phone'] ?? '';
         _emailController.text = user['email'] ?? '';
         _completedCount = completed;
         _inProgressCount = inProgress.length;
@@ -79,6 +81,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   void dispose() {
     _nameController.dispose();
+    _phoneController.dispose();
     _emailController.dispose();
     super.dispose();
   }
@@ -116,9 +119,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 // Lưu thay đổi vào Hive
                 if (_currentUser != null) {
                   final newName = _nameController.text.trim();
+                  final newPhone = _phoneController.text.trim();
                   if (newName.isNotEmpty) {
-                    await DatabaseHelper.instance.updateUserName(_currentUser!['email'], newName);
+                    await DatabaseHelper.instance.updateUserProfile(_currentUser!['email'], newName, newPhone);
                     _currentUser!['name'] = newName;
+                    _currentUser!['phone'] = newPhone;
                   }
                 }
                 setState(() {
@@ -260,6 +265,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
               const SizedBox(height: 16),
               TextField(
+                controller: _phoneController,
+                enabled: _isEditing,
+                keyboardType: TextInputType.phone,
+                style: TextStyle(color: Theme.of(context).textTheme.bodyLarge?.color),
+                decoration: InputDecoration(
+                  labelText: SettingsManager.translate('all') == 'All' ? 'Phone Number' : 'Số điện thoại',
+                  labelStyle: const TextStyle(color: Colors.grey),
+                  prefixIcon: const Icon(Icons.phone_outlined, color: Colors.grey),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+                  filled: !_isEditing,
+                  fillColor: Theme.of(context).brightness == Brightness.dark
+                      ? const Color(0xFF1E293B)
+                      : Colors.grey.shade100,
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextField(
                 controller: _emailController,
                 enabled: false,
                 style: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : Colors.black54),
@@ -289,9 +311,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   padding: const EdgeInsets.symmetric(vertical: 16),
                 ),
                 onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text(SettingsManager.translate('reset_link_sent'))),
-                  );
+                  Navigator.pushNamed(context, '/change-password');
                 },
                 child: Center(
                   child: Text(
